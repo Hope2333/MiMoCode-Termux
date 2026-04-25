@@ -89,7 +89,7 @@ leaving the rest of `opencode.json` untouched:
 
 Current target path:
 
-- `file:///data/data/com.termux/files/usr/lib/opencode/plugins/oh-my-opencode/dist/index.js`
+- `file:///data/data/com.termux/files/usr/lib/opencode/plugins/oh-my-opencode/index.js`
 
 The command snapshots `opencode.json` first and only rewrites matching OMO/plugin-manager
 local entries.

@@ -1,6 +1,6 @@
 # OpenCode for Termux - local build orchestrator
 
-SHELL := /bin/bash
+SHELL := /data/data/com.termux/files/usr/bin/bash
 .DEFAULT_GOAL := help
 
 VER ?= latest

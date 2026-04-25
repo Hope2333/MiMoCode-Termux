@@ -27,10 +27,10 @@ system_root_of() { printf '%s/%s' "$SYSTEM_PLUG_DIR" "$1"; }
 system_entry_of() {
 	local root
 	root="$(system_root_of "$1")"
-	if [[ -f "$root/dist/index.js" ]]; then
-		printf '%s/dist/index.js' "$root"
-	elif [[ -f "$root/index.js" ]]; then
+	if [[ -f "$root/index.js" ]]; then
 		printf '%s/index.js' "$root"
+	elif [[ -f "$root/dist/index.js" ]]; then
+		printf '%s/dist/index.js' "$root"
 	else
 		return 1
 	fi
@@ -439,6 +439,7 @@ def is_legacy_entry(item: object) -> bool:
         f"/local-plugins/{name}/index.js",
         f"/local-plugins/{name}/dist/index.js",
         f"/local-plugins/{name}/package/dist/index.js",
+        f"/lib/opencode/plugins/{name}/dist/index.js",
     ]
     return any(item.endswith(suffix) for suffix in suffixes)
 
