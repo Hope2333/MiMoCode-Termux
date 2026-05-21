@@ -6,8 +6,8 @@ STAGED_PREFIX="${STAGED_PREFIX:-$ROOT_DIR/artifacts/staged/prefix}"
 PACKAGER_NAME="${PACKAGER_NAME:-Hope2333(幽零小喵) <u0catmiao@proton.me>}"
 PKGREL="${PKGREL:-1}"
 
-[[ -x "$STAGED_PREFIX/lib/opencode/runtime/opencode" ]] || {
-	echo "Error: missing staged runtime"
+[[ -x "$STAGED_PREFIX/lib/opencode/runtime/opencode" ]] || [[ -x "$STAGED_PREFIX/lib/opencode/runtime/bun" ]] || {
+	echo "Error: missing staged runtime (need opencode or bun)"
 	exit 1
 }
 [[ -x "$STAGED_PREFIX/bin/opencode" ]] || {
@@ -15,7 +15,12 @@ PKGREL="${PKGREL:-1}"
 	exit 1
 }
 
-VERSION="${VERSION:-$($STAGED_PREFIX/lib/opencode/runtime/opencode --version 2>/dev/null || true)}"
+# Version: prefer opencode binary (gives correct OpenCode version), fallback to Android Bun
+if [[ -x "$STAGED_PREFIX/lib/opencode/runtime/opencode" ]]; then
+	VERSION="${VERSION:-$($STAGED_PREFIX/lib/opencode/runtime/opencode --version 2>/dev/null || true)}"
+elif [[ -x "$STAGED_PREFIX/lib/opencode/runtime/bun" ]]; then
+	VERSION="${VERSION:-$($STAGED_PREFIX/lib/opencode/runtime/bun --version 2>/dev/null || true)}"
+fi
 [[ -n "$VERSION" ]] || {
 	echo "Error: unable to determine version from staged runtime"
 	exit 1
