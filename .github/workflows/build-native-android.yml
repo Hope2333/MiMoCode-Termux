@@ -33,6 +33,17 @@ jobs:
       # ---- step (a): checkout repo ----
       - uses: actions/checkout@v4
 
+      # ---- install QEMU user emulation for aarch64 (needed by bun-termux-loader wrapping) ----
+      - name: Install QEMU for aarch64
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq qemu-user-static binfmt-support
+          # Register binfmt for aarch64
+          docker run --rm --privileged multiarch/qemu-user-static --reset -p yes 2>/dev/null || \
+          sudo update-binfmts --enable qemu-aarch64 2>/dev/null || true
+          echo "QEMU aarch64 support installed"
+
       # ---- prepare output directory structure ----
       - name: Prepare output directories
         run: |
@@ -91,8 +102,50 @@ jobs:
           fi
           file ../../assets/opencode-linux-arm64 2>/dev/null | tee ../../logs/opencode-file.txt || true
 
-      # ---- step (d): download Android-native Bun for aarch64 ----
-      - name: Download Android Bun for aarch64
+      # ---- verify bun installation path ----
+      - name: Verify Bun installation
+        run: |
+          set -euo pipefail
+          if [[ -x "$BUN_INSTALL/bin/bun" ]]; then
+            echo "Bun installed at: $BUN_INSTALL/bin/bun"
+            "$BUN_INSTALL/bin/bun" --version | tee -a out/logs/bun-linux-version.txt
+          else
+            echo "Bun not found at $BUN_INSTALL/bin/bun, checking HOME/.bun..."
+            if [[ -x "$HOME/.bun/bin/bun" ]]; then
+              echo "Bun found at HOME/.bun, updating BUN_INSTALL"
+              echo "BUN_INSTALL=$HOME/.bun" >> "$GITHUB_ENV"
+            else
+              echo "ERROR: Bun not found anywhere after installation" >&2
+            fi
+          fi
+
+      # ---- verify downloaded opencode version matches expected ----
+      - name: Verify opencode version
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          BIN="out/assets/opencode-linux-arm64"
+          EXP_VER="${{ steps.resolve-version.outputs.opencode_version }}"
+          if [[ ! -f "$BIN" ]]; then
+            echo "opencode binary not available, skipping version check" | tee out/logs/version-check.txt
+            exit 0
+          fi
+          ACTUAL_VER="$("$BIN" --version 2>/dev/null || true)"
+          echo "Expected version: $EXP_VER" | tee out/logs/version-check.txt
+          echo "Actual version:   $ACTUAL_VER" | tee -a out/logs/version-check.txt
+          if [[ -n "$ACTUAL_VER" && "$ACTUAL_VER" == "$EXP_VER" ]]; then
+            echo "VERSION_MATCH=true" >> "$GITHUB_ENV"
+            echo "Version match: OK" | tee -a out/logs/version-check.txt
+          elif [[ -n "$ACTUAL_VER" ]]; then
+            echo "VERSION_MATCH=false (expected $EXP_VER, got $ACTUAL_VER)" >> "$GITHUB_ENV"
+            echo "Version MISMATCH: expected=$EXP_VER actual=$ACTUAL_VER" | tee -a out/logs/version-check.txt
+          else
+            echo "VERSION_MATCH=unknown" >> "$GITHUB_ENV"
+            echo "Could not determine actual version (binary may not be executable on x86_64)" | tee -a out/logs/version-check.txt
+          fi
+
+      # ---- step (d): download Android-native Bun for aarch64 (diagnostic artifact, not used by wrapping) ----
+      - name: Download Android Bun for aarch64 (diagnostic)
         continue-on-error: true
         run: |
           set -euo pipefail
@@ -102,8 +155,9 @@ jobs:
             exit 0
           fi
           unzip -o out/assets/bun-linux-aarch64-android.zip -d out/assets/
-          if [[ -f out/assets/bun-linux-aarch64-android ]]; then
-            chmod +x out/assets/bun-linux-aarch64-android
+          BUN_BIN="$(find out/assets/ -name 'bun' -type f 2>/dev/null | head -1 || true)"
+          if [[ -f "$BUN_BIN" ]]; then
+            mv "$BUN_BIN" out/assets/bun-linux-aarch64-android
             file out/assets/bun-linux-aarch64-android | tee out/logs/bun-android-file.txt
             out/assets/bun-linux-aarch64-android --version 2>&1 | tee out/logs/bun-android-version.txt || true
           fi
@@ -156,6 +210,12 @@ jobs:
                   sf.write(s.decode("utf-8", errors="replace") + "\n")
           print("Wrote first 500 readable strings -> out/logs/payload-strings.txt")
           PY
+          # Set GITHUB_ENV from analysis result
+          if grep -q "STATUS: MARKER_FOUND" out/logs/binary-analysis.txt 2>/dev/null; then
+            echo "MARKER_FOUND=true" >> "$GITHUB_ENV"
+          else
+            echo "MARKER_FOUND=false" >> "$GITHUB_ENV"
+          fi
 
       # ---- step (f): attempt cross-compile with bun build --compile --target=bun-linux-arm64 ----
       - name: Attempt cross-compile for aarch64
@@ -308,12 +368,14 @@ jobs:
           echo "---" | tee -a out/logs/bundle-manifest.txt
           ls -lh out/bundle/ | tee -a out/logs/bundle-manifest.txt
 
-      # ---- step (h): upload artifacts ----
+      # ---- step (h): upload artifacts (bundle + status only, not logs/work) ----
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
           name: opencode-android-aarch64-build
-          path: out/
+          path: |
+            out/bundle/
+            out/status/
           retention-days: 30
 
       # ---- step (i): write status JSON ----
