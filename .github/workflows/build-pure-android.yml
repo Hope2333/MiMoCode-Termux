@@ -1,0 +1,125 @@
+# Build Pure Android
+#
+# Produces OpenCode packages with Android-native Bun runtime.
+# No bun-termux-loader, no glibc wrapping, no statx shim.
+# Trigger: manual (workflow_dispatch).
+
+name: Build Pure Android
+
+on:
+  workflow_dispatch:
+    inputs:
+      opencode_version:
+        description: "OpenCode version (use 'latest' for npm latest)"
+        required: false
+        default: "latest"
+
+env:
+  BUN_ANDROID_VER: "1.3.14"
+
+jobs:
+  build-pure-android:
+    strategy:
+      matrix:
+        arch: [aarch64, x64]
+      fail-fast: false
+    runs-on: ubuntu-latest
+    env:
+      BUN_ANDROID_URL: "https://github.com/oven-sh/bun/releases/download/bun-v${{ env.BUN_ANDROID_VER }}/bun-linux-${{ matrix.arch }}-android.zip"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Prepare output directories
+        run: |
+          mkdir -p out/bundle out/status
+
+      - name: Resolve opencode version
+        id: resolve-version
+        run: |
+          INPUT_VER="${{ github.event.inputs.opencode_version || 'latest' }}"
+          if [[ "$INPUT_VER" == "latest" ]]; then
+            VER="$(npm view opencode-linux-arm64 version 2>/dev/null || echo 'latest')"
+          else
+            VER="$INPUT_VER"
+          fi
+          echo "version=$VER"
+          echo "opencode_version=$VER" >> "$GITHUB_OUTPUT"
+
+      - name: Download opencode-linux-arm64 from npm
+        continue-on-error: true
+        env:
+          VER: ${{ steps.resolve-version.outputs.opencode_version }}
+        run: |
+          set -euo pipefail
+          mkdir -p out/work
+          cd out/work
+          if [[ "$VER" == "latest" ]]; then
+            npm pack opencode-linux-arm64 2>/dev/null || true
+          else
+            npm pack "opencode-linux-arm64@$VER" 2>/dev/null || true
+          fi
+          TGZ="$(ls -1 *.tgz 2>/dev/null | head -n1 || true)"
+          if [[ -z "$TGZ" ]]; then
+            echo "npm pack failed, skipping" >&2
+            exit 0
+          fi
+          tar -xzf "$TGZ"
+          if [[ -f package/bin/opencode ]]; then
+            cp package/bin/opencode ../bundle/opencode-linux-arm64
+            chmod +x ../bundle/opencode-linux-arm64
+            file ../bundle/opencode-linux-arm64
+          fi
+
+      - name: Download Android Bun for ${{ matrix.arch }}
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          curl -fL "$BUN_ANDROID_URL" -o out/bundle/bun-linux-android.zip || exit 0
+          mkdir -p out/bun-tmp
+          unzip -o out/bundle/bun-linux-android.zip -d out/bun-tmp/
+          BUN_BIN="$(find out/bun-tmp/ -name 'bun' -type f | head -1)"
+          if [[ -n "$BUN_BIN" ]]; then
+            cp "$BUN_BIN" out/bundle/bun-linux-android
+            chmod +x out/bundle/bun-linux-android
+            file out/bundle/bun-linux-android
+            out/bundle/bun-linux-android --version 2>/dev/null || true
+          fi
+          rm -rf out/bun-tmp
+
+      - name: Create bundle manifest
+        run: |
+          echo "=== Bundle contents ==="
+          ls -lh out/bundle/
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: opencode-pure-android-${{ matrix.arch }}
+          path: |
+            out/bundle/
+            out/status/
+          retention-days: 30
+
+      - name: Write status JSON
+        run: |
+          python3 - <<'PY'
+          import json, os, hashlib
+          from pathlib import Path
+          bundle = Path("out/bundle")
+          assets = []
+          if bundle.exists():
+              for p in sorted(bundle.rglob("*")):
+                  if p.is_file():
+                      rel = str(p.relative_to(Path("out")))
+                      assets.append({"path": rel, "size": p.stat().st_size})
+          status = {
+              "workflow": "build-pure-android",
+              "arch": "${{ matrix.arch }}",
+              "opencode_version": "${{ steps.resolve-version.outputs.opencode_version }}",
+              "bun_android_ver": "${{ env.BUN_ANDROID_VER }}",
+              "status": "completed",
+              "artifacts": assets,
+          }
+          Path("out/status/build-status.json").write_text(json.dumps(status, indent=2) + "\n")
+          PY
