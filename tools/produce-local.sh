@@ -1,172 +1,84 @@
 #!/data/data/com.termux/files/usr/bin/bash
+# tools/produce-local.sh — pure Android runtime preparation
+# Downloads opencode-linux-arm64 + Android native Bun.
+# No bun-termux-loader, no glibc wrapping.
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 INPUT_VER="${1:-}"
 
-log() { printf '[produce-local] %s\n' "$*"; }
-die() {
-	printf '[produce-local] ERROR: %s\n' "$*" >&2
-	exit 1
-}
-need() { command -v "$1" >/dev/null 2>&1 || die "missing command: $1"; }
+log() { printf '[produce-pure] %s\n' "$*"; }
+die() { printf '[produce-pure] ERROR: %s\n' "$*" >&2; exit 1; }
+need() { command -v "$1" >/dev/null 2>&1 || die "missing: $1"; }
+
+BUN_ANDROID_VER="${BUN_ANDROID_VER:-1.3.14}"
 
 resolve_version() {
-	if [[ -n "$INPUT_VER" ]]; then
-		printf '%s' "$INPUT_VER"
-		return 0
-	fi
-	local latest
-	latest="$(npm view opencode-linux-arm64 version 2>/dev/null || true)"
-	[[ -n "$latest" ]] || die "unable to resolve latest opencode-linux-arm64 version; pass explicit version as first argument"
-	printf '%s' "$latest"
+    if [[ -n "$INPUT_VER" ]]; then
+        printf '%s' "$INPUT_VER"
+        return 0
+    fi
+    local latest
+    latest="$(npm view opencode-linux-arm64 version 2>/dev/null || true)"
+    [[ -n "$latest" ]] || die "unable to resolve version"
+    printf '%s' "$latest"
 }
 
 VER="$(resolve_version)"
 WORK_BASE="${WORK_BASE:-$ROOT_DIR/.work}"
-WORK_DIR="${WORK_DIR:-$WORK_BASE/opencode-$VER}"
-KEEP_WORK="${KEEP_WORK:-0}"
+WORK_DIR="$WORK_BASE/pure-$VER"
 RUNTIME_DIR="$ROOT_DIR/artifacts/opencode/runtime"
-RUNTIME_OUT="$RUNTIME_DIR/opencode-termux"
-UPSTREAM_TGZ="opencode-linux-arm64-$VER.tgz"
-UPSTREAM_BIN="$WORK_DIR/package/bin/opencode"
-GITHUB_URL="https://github.com/anomalyco/opencode/releases/download/v${VER}/opencode-linux-arm64.tar.gz"
+RUNTIME_OUT="$RUNTIME_DIR/opencode"
+BUN_ANDROID_OUT="$RUNTIME_DIR/bun"
 
-LOADER_VENDOR="$ROOT_DIR/third-party/bun-termux-loader"
-LOADER_URL="${BUN_TERMUX_LOADER_URL:-https://github.com/Hope2333/bun-termux-loader}"
-
-resolve_loader_repo() {
-	# 1. Explicit env override
-	if [[ -n "${BUN_TERMUX_LOADER:-}" ]]; then
-		if [[ -f "$BUN_TERMUX_LOADER/build.py" ]]; then
-			printf '%s' "$BUN_TERMUX_LOADER"
-			return 0
-		fi
-		return 1
-	fi
-
-	# 2. Project-internal third-party (preferred auto-clone target)
-	if [[ -f "$LOADER_VENDOR/build.py" ]]; then
-		printf '%s' "$LOADER_VENDOR"
-		return 0
-	fi
-
-	# 3. External common paths (existing user setups)
-	local c
-	for c in "$HOME/bun-termux-loader" "$HOME/develop/bun-termux-loader"; do
-		if [[ -f "$c/build.py" ]]; then
-			printf '%s' "$c"
-			return 0
-		fi
-	done
-
-	# 4. Auto-clone into project-internal third-party
-	log "bun-termux-loader not found locally, cloning into third-party/"
-	if ! command -v git >/dev/null 2>&1; then
-		return 1
-	fi
-	rm -rf "$LOADER_VENDOR"
-	git clone --depth 1 "$LOADER_URL" "$LOADER_VENDOR" 2>&1 || return 1
-	if [[ ! -f "$LOADER_VENDOR/build.py" ]]; then
-		log "warning: cloned repo missing build.py, cleaning up"
-		rm -rf "$LOADER_VENDOR"
-		return 1
-	fi
-	printf '%s' "$LOADER_VENDOR"
-}
-
-download_upstream_binary() {
-	local npm_ok=0
-	log "downloading upstream package from npm (preferred)"
-	if npm pack "opencode-linux-arm64@$VER" >/dev/null 2>&1 && [[ -f "$UPSTREAM_TGZ" ]]; then
-		tar -xzf "$UPSTREAM_TGZ"
-		if [[ -x "$UPSTREAM_BIN" ]]; then
-			npm_ok=1
-		fi
-	fi
-
-	if [[ "$npm_ok" -eq 1 ]]; then
-		log "using npm package source for version $VER"
-		return 0
-	fi
-
-	log "npm package for version $VER not available, falling back to GitHub release binary"
-	local gh_tgz="$WORK_DIR/opencode-linux-arm64-github-$VER.tar.gz"
-	if command -v curl >/dev/null 2>&1; then
-		curl -fL "$GITHUB_URL" -o "$gh_tgz" || die "github fallback download failed: $GITHUB_URL"
-	elif command -v wget >/dev/null 2>&1; then
-		wget -O "$gh_tgz" "$GITHUB_URL" || die "github fallback download failed: $GITHUB_URL"
-	else
-		die "missing curl/wget for github fallback download"
-	fi
-
-	mkdir -p "$WORK_DIR/package/bin"
-	tar -xzf "$gh_tgz" -C "$WORK_DIR" || true
-
-	local candidate=""
-	for c in "$WORK_DIR/opencode-linux-arm64" "$WORK_DIR/opencode"; do
-		if [[ -x "$c" ]]; then
-			candidate="$c"
-			break
-		fi
-	done
-
-	if [[ -z "$candidate" ]]; then
-		candidate="$(find "$WORK_DIR" -maxdepth 3 -type f \( -name 'opencode' -o -name 'opencode-*' \) -perm -u+x 2>/dev/null | head -n1 || true)"
-	fi
-
-	[[ -n "$candidate" && -x "$candidate" ]] || die "github fallback unpacked but upstream binary not found"
-	cp "$candidate" "$UPSTREAM_BIN"
-	log "using GitHub release source for version $VER (candidate: $candidate)"
-}
-
-need npm
-need tar
-need file
-need python3
-
-LOADER_REPO="$(resolve_loader_repo || true)"
-[[ -n "$LOADER_REPO" ]] || die "bun-termux-loader not found and auto-clone failed (need build.py)"
+rm -rf "$WORK_DIR" "$RUNTIME_DIR"
+mkdir -p "$WORK_DIR" "$RUNTIME_DIR"
 
 log "version=$VER"
-log "work_base=$WORK_BASE"
 log "work_dir=$WORK_DIR"
-log "loader_repo=$LOADER_REPO"
 
-mkdir -p "$WORK_BASE"
-rm -rf "$WORK_DIR"
-mkdir -p "$WORK_DIR"
+# Step 1: Download opencode-linux-arm64 from npm
+need npm
+log "downloading opencode-linux-arm64@$VER from npm"
 cd "$WORK_DIR"
+npm pack "opencode-linux-arm64@$VER" >/dev/null 2>&1 || die "npm pack failed"
+tgz="$(ls *.tgz | head -1)"
+tar -xzf "$tgz"
+[[ -x package/bin/opencode ]] || die "binary not found"
+install -m 755 package/bin/opencode "$RUNTIME_OUT"
+log "installed opencode binary: $(file "$RUNTIME_OUT" | cut -d: -f2)"
 
-download_upstream_binary
+# Step 2: Download Android native Bun
+log "downloading Android Bun v$BUN_ANDROID_VER"
+ANDROID_ZIP="bun-linux-aarch64-android.zip"
+ANDROID_URL="https://github.com/oven-sh/bun/releases/download/bun-v${BUN_ANDROID_VER}/${ANDROID_ZIP}"
+if command -v curl >/dev/null 2>&1; then
+    curl -fL "$ANDROID_URL" -o "$WORK_DIR/$ANDROID_ZIP" || die "download failed"
+elif command -v wget >/dev/null 2>&1; then
+    wget -O "$WORK_DIR/$ANDROID_ZIP" "$ANDROID_URL" || die "download failed"
+else
+    die "need curl or wget"
+fi
+mkdir -p "$WORK_DIR/bun-android"
+unzip -o "$WORK_DIR/$ANDROID_ZIP" -d "$WORK_DIR/bun-android" >/dev/null 2>&1
+BUN_BIN="$(find "$WORK_DIR/bun-android" -name 'bun' -type f | head -1)"
+[[ -n "$BUN_BIN" && -x "$BUN_BIN" ]] || die "Android Bun binary not found"
+install -m 755 "$BUN_BIN" "$BUN_ANDROID_OUT"
+log "installed Android Bun: $(file "$BUN_ANDROID_OUT" | cut -d: -f2)"
 
-log "upstream fingerprint"
-file "$UPSTREAM_BIN"
+# Step 3: Verify
+log "verifying..."
+"$BUN_ANDROID_OUT" --version 2>&1 | xargs echo "  Android Bun version:"
+# opencode binary might not run directly (glibc dep), but we bundle it
+file "$RUNTIME_OUT" | xargs echo "  opencode binary:"
 
-mkdir -p "$RUNTIME_DIR"
-log "wrapping upstream binary for Termux/Android"
-(cd "$LOADER_REPO" && python3 build.py "$UPSTREAM_BIN" --wrapper ./wrapper)
-[[ -f "$WORK_DIR/package/bin/opencode-termux" ]] || die "wrapped runtime not generated"
-install -m 755 "$WORK_DIR/package/bin/opencode-termux" "$RUNTIME_OUT"
-
-log "wrapped runtime verification"
-file "$RUNTIME_OUT"
-"$RUNTIME_OUT" --version
-
-log "cleaning generated outputs to avoid stale contamination"
+# Step 4: Clean
+log "cleaning work directory"
+rm -rf "$WORK_DIR"
 rm -rf "$ROOT_DIR/artifacts/staged" "$ROOT_DIR/packaging/dpkg/work" "$ROOT_DIR/packaging/pacman/src"
 
-if [[ "$KEEP_WORK" != "1" ]]; then
-	log "cleaning temporary work directory"
-	rm -rf "$WORK_DIR"
-fi
-
-cat <<MSG
-[produce-local] Runtime prepared successfully:
-  $RUNTIME_OUT
-
-Next steps (repo-specific):
-  1) build staged tree from this runtime
-  2) package deb/pacman
-  3) verify staged/deb/pacman runtime versions are all $VER
-MSG
+log "DONE"
+log "  opencode: $RUNTIME_OUT  (fallback, needs glibc)"
+log "  bun:      $BUN_ANDROID_OUT  (primary, Android native)"
+log ""
+log "The launcher prefers Android Bun when both are installed."
