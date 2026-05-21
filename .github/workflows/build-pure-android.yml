@@ -52,12 +52,22 @@ jobs:
           cd out/opencode-source
           echo "=== Installing dependencies ==="
           bun install 2>&1 | tail -5 || exit 0
-          echo "=== Building JS bundle ==="
-          cd packages/opencode
-          bun run build --target=bun --outfile=../../bundle/bundle.js 2>&1 || \
-          bun build ./src/index.ts --target=bun --format=esm --outfile=../../bundle/bundle.js 2>&1 || true
-          if [[ -f "../../bundle/bundle.js" ]]; then
-            echo "Bundle built: $(wc -c ../../bundle/bundle.js) bytes"
+          echo "=== Building JS bundle (direct bun build) ==="
+          # Direct bundling - no --compile, just target=bun for JS output
+          bun build ./packages/opencode/src/index.ts \
+            --target=bun \
+            --format=esm \
+            --minify \
+            --external @opentui/core \
+            --external @parcel/watcher \
+            --outfile ../bundle/bundle.js 2>&1 || \
+          bun build ./src/index.ts \
+            --target=bun \
+            --format=esm \
+            --outfile ../bundle/bundle.js 2>&1 || true
+          if [[ -f "../bundle/bundle.js" ]]; then
+            echo "Bundle built: $(wc -c ../bundle/bundle.js) bytes"
+            file ../bundle/bundle.js
           else
             echo "Bundle build did not produce output"
           fi
