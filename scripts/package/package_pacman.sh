@@ -6,8 +6,8 @@ STAGED_PREFIX="${STAGED_PREFIX:-$ROOT_DIR/artifacts/staged/prefix}"
 PACKAGER_NAME="${PACKAGER_NAME:-Hope2333(幽零小喵) <u0catmiao@proton.me>}"
 PKGREL="${PKGREL:-1}"
 
-[[ -x "$STAGED_PREFIX/lib/opencode/runtime/opencode" ]] || [[ -x "$STAGED_PREFIX/lib/opencode/runtime/bun" ]] || {
-	echo "Error: missing staged runtime (need opencode or bun)"
+[[ -x "$STAGED_PREFIX/lib/opencode/runtime/bun" ]] || {
+	echo "Error: missing Android Bun runtime"
 	exit 1
 }
 [[ -x "$STAGED_PREFIX/bin/opencode" ]] || {
@@ -15,16 +15,12 @@ PKGREL="${PKGREL:-1}"
 	exit 1
 }
 
-# Version: use explicit VERSION if set (from Makefile), else try binaries
-if [[ -z "${VERSION:-}" && -x "$STAGED_PREFIX/lib/opencode/runtime/opencode" ]]; then
-	VERSION="$($STAGED_PREFIX/lib/opencode/runtime/opencode --version 2>/dev/null || true)"
-fi
+# Version: use explicit VERSION if set, else read from Android Bun
 if [[ -z "${VERSION:-}" && -x "$STAGED_PREFIX/lib/opencode/runtime/bun" ]]; then
 	VERSION="$($STAGED_PREFIX/lib/opencode/runtime/bun --version 2>/dev/null || true)"
 fi
 [[ -n "$VERSION" ]] || {
-	echo "Error: unable to determine version from staged runtime"
-	echo "Set VERSION env var explicitly, e.g.: VERSION=1.15.1 ./scripts/package/package_pacman.sh"
+	echo "Error: unable to determine version"
 	exit 1
 }
 

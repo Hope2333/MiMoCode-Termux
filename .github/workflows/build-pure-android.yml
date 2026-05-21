@@ -34,42 +34,9 @@ jobs:
         run: |
           mkdir -p out/bundle out/status
 
-      - name: Resolve opencode version
+      - name: Resolve version
         id: resolve-version
-        run: |
-          INPUT_VER="${{ github.event.inputs.opencode_version || 'latest' }}"
-          if [[ "$INPUT_VER" == "latest" ]]; then
-            VER="$(npm view opencode-linux-arm64 version 2>/dev/null || echo 'latest')"
-          else
-            VER="$INPUT_VER"
-          fi
-          echo "version=$VER"
-          echo "opencode_version=$VER" >> "$GITHUB_OUTPUT"
-
-      - name: Download opencode-linux-arm64 from npm
-        continue-on-error: true
-        env:
-          VER: ${{ steps.resolve-version.outputs.opencode_version }}
-        run: |
-          set -euo pipefail
-          mkdir -p out/work
-          cd out/work
-          if [[ "$VER" == "latest" ]]; then
-            npm pack opencode-linux-arm64 2>/dev/null || true
-          else
-            npm pack "opencode-linux-arm64@$VER" 2>/dev/null || true
-          fi
-          TGZ="$(ls -1 *.tgz 2>/dev/null | head -n1 || true)"
-          if [[ -z "$TGZ" ]]; then
-            echo "npm pack failed, skipping" >&2
-            exit 0
-          fi
-          tar -xzf "$TGZ"
-          if [[ -f package/bin/opencode ]]; then
-            cp package/bin/opencode ../bundle/opencode-linux-arm64
-            chmod +x ../bundle/opencode-linux-arm64
-            file ../bundle/opencode-linux-arm64
-          fi
+        run: echo "version=${{ github.event.inputs.opencode_version || 'latest' }}" >> "$GITHUB_OUTPUT"
 
       - name: Download Android Bun for ${{ matrix.arch }}
         continue-on-error: true

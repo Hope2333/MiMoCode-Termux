@@ -7,7 +7,6 @@ source "$ROOT_DIR/scripts/common.sh"
 OPENCODE_SRC_DIR="${OPENCODE_SRC_DIR:-$ROOT_DIR/sources/opencode/repo}"
 OUT_DIR="${OPENCODE_OUT_DIR:-$ROOT_DIR/artifacts/staged}"
 PREFIX_DIR="${OPENCODE_PREFIX_DIR:-$OUT_DIR/prefix}"
-RUNTIME_INPUT="${OPENCODE_RUNTIME_INPUT:-$ROOT_DIR/artifacts/opencode/runtime/opencode}"
 BUN_ANDROID_INPUT="${OPENCODE_BUN_ANDROID_INPUT:-$ROOT_DIR/artifacts/opencode/runtime/bun}"
 
 ensure_dir "$PREFIX_DIR/lib/opencode/runtime"
@@ -29,20 +28,10 @@ else
 	log "source tree not found; continuing runtime-only staging"
 fi
 
-if [[ -f "$RUNTIME_INPUT" ]]; then
-	install -m 755 "$RUNTIME_INPUT" "$PREFIX_DIR/lib/opencode/runtime/opencode"
-	RUNTIME_MODE="raw-linux"
-elif [[ -f "$BUN_ANDROID_INPUT" ]]; then
-	RUNTIME_MODE="android-only"
-else
-	fail "no runtime found (need opencode or bun android binary)"
-fi
-
-# Install Android-native Bun runtime (primary runtime for launcher)
-if [[ -f "$BUN_ANDROID_INPUT" ]]; then
-	install -m 755 "$BUN_ANDROID_INPUT" "$PREFIX_DIR/lib/opencode/runtime/bun"
-	log "installed Android-native Bun (primary runtime)"
-fi
+[[ -f "$BUN_ANDROID_INPUT" ]] || fail "Android Bun binary not found at $BUN_ANDROID_INPUT"
+install -m 755 "$BUN_ANDROID_INPUT" "$PREFIX_DIR/lib/opencode/runtime/bun"
+log "installed Android-native Bun"
+RUNTIME_MODE="android-only"
 
 install -m 755 "$ROOT_DIR/scripts/launcher.sh" "$PREFIX_DIR/bin/opencode"
 if [[ -f "$ROOT_DIR/tools/plugin-manager.sh" ]]; then
@@ -77,23 +66,10 @@ if [[ -f "$DOCS_LIST" ]]; then
 fi
 
 # Compile statx-seccomp shim for Android/Termux compatibility
-# statx shim: only needed for glibc-wrapped binary fallback
-STATX_SHIM_SRC="$ROOT_DIR/tools/statx-shim.c"
-STATX_SHIM_DST="$PREFIX_DIR/lib/opencode/lib/libstatx-shim.so"
-if [[ -f "$STATX_SHIM_SRC" && "$RUNTIME_MODE" = "raw-linux" ]]; then
-	log "compiling statx seccomp shim (for glibc fallback)"
-	ensure_dir "$PREFIX_DIR/lib/opencode/lib"
-	if command -v gcc >/dev/null 2>&1; then
-		gcc -shared -fPIC -o "$STATX_SHIM_DST" "$STATX_SHIM_SRC" || log "warning: shim build failed"
-	elif command -v cc >/dev/null 2>&1; then
-		cc -shared -fPIC -o "$STATX_SHIM_DST" "$STATX_SHIM_SRC" || log "warning: shim build failed"
-	fi
-fi
-
 write_build_meta "$ROOT_DIR/artifacts/opencode/build.meta" \
 	"component=opencode" \
 	"prefix=$PREFIX_DIR" \
-	"runtime_mode=$RUNTIME_MODE" \
-	"runtime_path=$PREFIX_DIR/lib/opencode/runtime/opencode"
+	"runtime_mode=android-only" \
+	"runtime_path=$PREFIX_DIR/lib/opencode/runtime/bun"
 
 log "staged build ready: $PREFIX_DIR"

@@ -1,85 +1,11 @@
 #!/data/data/com.termux/files/usr/bin/bash
+# scripts/launcher.sh — Pure Android launcher
+# Runs Android-native Bun as the opencode command.
+# No glibc, no statx shim, no bun-termux-loader.
 set -euo pipefail
 
 SELF_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-
-# Runtime paths
-OPENCODE_CLI="$SELF_DIR/../lib/opencode/packages/opencode/bin/opencode"
-OPENCODE_RUNTIME="$SELF_DIR/../lib/opencode/runtime/opencode"  # OpenCode app binary
-STATX_SHIM="$SELF_DIR/../lib/opencode/lib/libstatx-shim.so"
-
-# Android-native Bun runtime (interpreter only, for future JS bundle use)
 BUN_RUNTIME="$SELF_DIR/../lib/opencode/runtime/bun"
-PREFIX="${PREFIX:-/data/data/com.termux/files/usr}"
-
-# glibc availability check (needed by OpenCode app binary)
-glibc_available() {
-    [[ -f "$PREFIX/glibc/lib/ld-linux-aarch64.so.1" ]] || \
-    [[ -f "$PREFIX/glibc/lib/libc.so.6" ]] || \
-    (command -v dpkg >/dev/null 2>&1 && dpkg -l glibc 2>/dev/null | grep -q '^ii') || \
-    (command -v pacman >/dev/null 2>&1 && pacman -Q glibc >/dev/null 2>&1)
-}
-
-# Runtime selection: OpenCode app > Android Bun interpreter
-select_runtime() {
-    # Primary path: OpenCode app binary (has the actual AI coding assistant code)
-    if [[ -x "$OPENCODE_RUNTIME" ]] && glibc_available; then
-        # OpenCode binary is glibc-linked. On Termux, exec it through glibc's
-        # dynamic linker (the binary's INTERP path /lib/ld-linux-aarch64.so.1
-        # doesn't exist on stock Termux — glibc installs it under $PREFIX/glibc).
-        GLIBC_LD="$PREFIX/glibc/lib/ld-linux-aarch64.so.1"
-        if [[ -x "$GLIBC_LD" ]]; then
-            export OPENCODE_RUNTIME_SELECTED="opencode-app"
-            exec "$GLIBC_LD" "$OPENCODE_RUNTIME" "$@"
-        fi
-        # Fallback: direct exec (unlikely to work on Termux)
-        apply_statx_shim
-        export OPENCODE_RUNTIME_SELECTED="opencode-app"
-        exec "$OPENCODE_RUNTIME" "$@"
-    fi
-
-    # If OpenCode binary exists but glibc is missing, give clear instructions
-    if [[ -x "$OPENCODE_RUNTIME" ]] && ! glibc_available; then
-        echo "opencode: OpenCode binary found but glibc is not installed." >&2
-        echo "opencode: Install glibc:" >&2
-        echo "  apt install -y glibc-repo && apt update && apt install -y glibc openssl-glibc" >&2
-        echo "opencode: Then run 'opencode' again." >&2
-        exit 1
-    fi
-
-    # Android Bun interpreter (no glibc needed, but limited to bun commands only)
-    if [[ -x "$BUN_RUNTIME" ]]; then
-        echo "opencode: Android Bun runtime found but no OpenCode application binary." >&2
-        echo "opencode: The package installation may be incomplete." >&2
-        echo "opencode: For now, you can use 'opencode --bun' for Bun commands." >&2
-        exec "$BUN_RUNTIME" "$@"
-    fi
-
-    # CLI source path (npm-based)
-    if [[ -f "$OPENCODE_CLI" ]] && glibc_available; then
-        apply_statx_shim
-        export OPENCODE_RUNTIME_SELECTED="cli"
-        exec "$OPENCODE_CLI" "$@" || true
-    fi
-
-    echo "opencode: no runtime found" >&2
-    echo "opencode: reinstall the package" >&2
-    exit 1
-}
-
-# Preload statx shim to avoid seccomp-blocked statx() syscall on Android.
-# glibc's stat()/fstatat() internally use direct syscall(statx) instructions;
-# Android seccomp blocks this (SIGSYS → SIGSEGV). The shim installs a SIGSYS
-# handler that returns -ENOSYS, triggering glibc's fallback to fstatat.
-# Can be disabled with OPENCODE_DISABLE_STATX_SHIM=1.
-apply_statx_shim() {
-    if [[ "${OPENCODE_DISABLE_STATX_SHIM:-0}" == "1" ]]; then
-        return
-    fi
-    if [[ -f "$STATX_SHIM" ]]; then
-        export LD_PRELOAD="${STATX_SHIM}${LD_PRELOAD:+:$LD_PRELOAD}"
-    fi
-}
 
 cleanup_tty_full() {
 	if [ -t 1 ]; then
@@ -111,26 +37,23 @@ cleanup_broken_cached_modules() {
 	fi
 }
 
-ensure_stdio_tty() {
-	if [ -t 0 ] && [ -t 1 ] && [ -w /dev/tty ]; then
-		exec </dev/tty >/dev/tty 2>/dev/tty
-	fi
-}
-
 trap 'cleanup_tty_full; exit 130' INT TERM HUP QUIT
-ensure_stdio_tty
 cleanup_state_locks
 cleanup_broken_cached_modules
 : "${OPENCODE_DISABLE_DEFAULT_PLUGINS:=1}"
 export OPENCODE_DISABLE_DEFAULT_PLUGINS
 
-# Dispatch to the best available runtime
-select_runtime "$@"
+if [[ ! -x "$BUN_RUNTIME" ]]; then
+	echo "opencode: Android Bun runtime not found at $BUN_RUNTIME" >&2
+	echo "opencode: reinstall the package" >&2
+	exit 1
+fi
+
+"$BUN_RUNTIME" "$@"
 rc=$?
 if [ "$rc" -eq 0 ]; then
 	cleanup_tty_soft
 else
 	cleanup_tty_full
 fi
-exit $rc
 exit $rc

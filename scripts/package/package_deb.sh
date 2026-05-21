@@ -16,10 +16,7 @@ command -v dpkg-deb >/dev/null 2>&1 || {
 	exit 1
 }
 
-# Version: use explicit VERSION if set (from Makefile), else try binaries
-if [[ -z "${VERSION:-}" && -x "$STAGED_PREFIX/lib/opencode/runtime/opencode" ]]; then
-	VERSION="$($STAGED_PREFIX/lib/opencode/runtime/opencode --version 2>/dev/null || true)"
-fi
+# Version: use explicit VERSION if set, else read from Android Bun
 if [[ -z "${VERSION:-}" && -x "$STAGED_PREFIX/lib/opencode/runtime/bun" ]]; then
 	VERSION="$($STAGED_PREFIX/lib/opencode/runtime/bun --version 2>/dev/null || true)"
 fi
