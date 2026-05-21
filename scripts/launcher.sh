@@ -1,11 +1,12 @@
 #!/data/data/com.termux/files/usr/bin/bash
 # scripts/launcher.sh — Pure Android launcher
-# Runs Android-native Bun as the opencode command.
+# Runs OpenCode JS bundle via Android-native Bun.
 # No glibc, no statx shim, no bun-termux-loader.
 set -euo pipefail
 
 SELF_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BUN_RUNTIME="$SELF_DIR/../lib/opencode/runtime/bun"
+BUNDLE_JS="$SELF_DIR/../lib/opencode/bundle.js"
 
 cleanup_tty_full() {
 	if [ -t 1 ]; then
@@ -29,31 +30,20 @@ cleanup_state_locks() {
 	fi
 }
 
-cleanup_broken_cached_modules() {
-	local cache_root="${XDG_CACHE_HOME:-$HOME/.cache}/opencode"
-	local mod_dir="$cache_root/node_modules/opencode-anthropic-auth"
-	if [ -d "$mod_dir" ] && [ ! -f "$mod_dir/package.json" ]; then
-		rm -rf "$cache_root/node_modules" 2>/dev/null || true
-	fi
-}
-
 trap 'cleanup_tty_full; exit 130' INT TERM HUP QUIT
 cleanup_state_locks
-cleanup_broken_cached_modules
 : "${OPENCODE_DISABLE_DEFAULT_PLUGINS:=1}"
 export OPENCODE_DISABLE_DEFAULT_PLUGINS
 
 if [[ ! -x "$BUN_RUNTIME" ]]; then
-	echo "opencode: Android Bun runtime not found at $BUN_RUNTIME" >&2
-	echo "opencode: reinstall the package" >&2
+	echo "opencode: Android Bun runtime not found" >&2
 	exit 1
 fi
 
-"$BUN_RUNTIME" "$@"
-rc=$?
-if [ "$rc" -eq 0 ]; then
-	cleanup_tty_soft
+if [[ -f "$BUNDLE_JS" ]]; then
+	exec "$BUN_RUNTIME" run "$BUNDLE_JS" "$@"
 else
-	cleanup_tty_full
+	echo "opencode: JS bundle not found at $BUNDLE_JS" >&2
+	echo "opencode: OpenCode AI features require the JS bundle" >&2
+	exec "$BUN_RUNTIME" "$@"
 fi
-exit $rc
