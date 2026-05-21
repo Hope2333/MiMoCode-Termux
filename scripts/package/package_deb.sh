@@ -11,16 +11,19 @@ command -v dpkg-deb >/dev/null 2>&1 || {
 	echo "Error: dpkg-deb not found"
 	exit 1
 }
-[[ -x "$STAGED_PREFIX/lib/opencode/runtime/opencode" ]] || {
-	echo "Error: missing staged runtime"
-	exit 1
-}
 [[ -x "$STAGED_PREFIX/bin/opencode" ]] || {
 	echo "Error: missing staged launcher"
 	exit 1
 }
 
-VERSION="${VERSION:-$($STAGED_PREFIX/lib/opencode/runtime/opencode --version 2>/dev/null || echo 0.0.0)}"
+# Prefer Android Bun for version detection, fall back to glibc binary
+if [[ -x "$STAGED_PREFIX/lib/opencode/runtime/bun" ]]; then
+	VERSION="${VERSION:-$($STAGED_PREFIX/lib/opencode/runtime/bun --version 2>/dev/null || echo 0.0.0)}"
+elif [[ -x "$STAGED_PREFIX/lib/opencode/runtime/opencode" ]]; then
+	VERSION="${VERSION:-$($STAGED_PREFIX/lib/opencode/runtime/opencode --version 2>/dev/null || echo 0.0.0)}"
+else
+	VERSION="${VERSION:-0.0.0}"
+fi
 DEB_ROOT="$ROOT_DIR/packaging/dpkg/work"
 OUT_DIR="$ROOT_DIR/packaging/dpkg"
 OUT_FILE="$OUT_DIR/opencode_${VERSION}_${ARCH_DEB}.deb"
@@ -37,9 +40,8 @@ Architecture: $ARCH_DEB
 Maintainer: $MAINTAINER
 Section: utils
 Priority: optional
-Description: OpenCode CLI for Termux
-Depends: glibc, openssl-glibc, bash, ncurses
-Suggests: glibc-runner
+Description: OpenCode AI coding assistant for Termux
+Depends: bash, ncurses
 EOF
 
 INSTALLED_SIZE=$(du -sk "$DEB_ROOT" | cut -f1)
@@ -50,7 +52,7 @@ cat >"$DEB_ROOT/DEBIAN/postinst" <<'POSTINST'
 set -e
 echo "OpenCode for Termux installed"
 echo "Run: opencode --version"
-echo "Optional fallback compatibility tools: pkg install glibc-runner"
+echo "Runtime: Android-native Bun (Bionic)"
 HOOK_RUNNER="/data/data/com.termux/files/usr/lib/opencode/tools/run-system-skills.sh"
 if [[ -x "$HOOK_RUNNER" ]]; then
   OPENCODE_HOOK_STRICT=0 OPENCODE_HOOK_ENABLE_NETWORK=0 "$HOOK_RUNNER" post_install || true

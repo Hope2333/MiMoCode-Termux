@@ -2,46 +2,51 @@
 set -euo pipefail
 
 SELF_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Runtime paths
 OPENCODE_CLI="$SELF_DIR/../lib/opencode/packages/opencode/bin/opencode"
-OPENCODE_RUNTIME="$SELF_DIR/../lib/opencode/runtime/opencode"
+OPENCODE_RUNTIME="$SELF_DIR/../lib/opencode/runtime/opencode"  # glibc fallback
 STATX_SHIM="$SELF_DIR/../lib/opencode/lib/libstatx-shim.so"
 
-# Android-native Bun runtime (preferred when available)
+# Android-native Bun runtime (primary)
 BUN_RUNTIME="$SELF_DIR/../lib/opencode/runtime/bun"
-BUNDLE_DIR="$SELF_DIR/../lib/opencode/runtime"
-BUNDLE_JS=""
+PREFIX="${PREFIX:-/data/data/com.termux/files/usr}"
 
-# Find bundle.js in standard locations
-for candidate in "$BUNDLE_DIR/bundle.js" "$SELF_DIR/../share/opencode/bundle.js"; do
-    if [[ -f "$candidate" ]]; then
-        BUNDLE_JS="$candidate"
-        break
-    fi
-done
+# glibc availability check (for fallback binary)
+glibc_available() {
+    [[ -f "$PREFIX/glibc/lib/ld-linux-aarch64.so.1" ]] || \
+    [[ -f "$PREFIX/glibc/lib/libc.so.6" ]] || \
+    (command -v dpkg >/dev/null 2>&1 && dpkg -l glibc 2>/dev/null | grep -q '^ii') || \
+    (command -v pacman >/dev/null 2>&1 && pacman -Q glibc >/dev/null 2>&1)
+}
 
 # Determine which runtime to use: Android Bun > glibc wrapped > CLI
 select_runtime() {
-    # Android-native path: Bun + JS bundle (no glibc, no statx shim needed)
-    if [[ -z "${OPENCODE_DISABLE_ANDROID_BUNDLE:-}" && -x "$BUN_RUNTIME" && -n "$BUNDLE_JS" ]]; then
+    # Android-native path: Bun (Bionic-linked, no glibc needed)
+    if [[ -x "$BUN_RUNTIME" ]]; then
         export OPENCODE_RUNTIME_SELECTED="android-bun"
-        exec "$BUN_RUNTIME" run "$BUNDLE_JS" "$@" || true
+        exec "$BUN_RUNTIME" "$@"
     fi
 
-    # glibc-wrapped path (backward compatible, needs statx shim)
-    if [[ -x "$OPENCODE_RUNTIME" ]]; then
+    # glibc-wrapped fallback path (only if glibc is installed)
+    if [[ -x "$OPENCODE_RUNTIME" ]] && glibc_available; then
         apply_statx_shim
         export OPENCODE_RUNTIME_SELECTED="glibc-wrapped"
-        exec "$OPENCODE_RUNTIME" "$@" || true
+        exec "$OPENCODE_RUNTIME" "$@"
+    elif [[ -x "$OPENCODE_RUNTIME" ]] && ! glibc_available; then
+        echo "opencode: glibc-wrapped binary found but glibc is not installed" >&2
+        echo "opencode: install glibc: apt install glibc-repo && apt install glibc openssl-glibc" >&2
     fi
 
     # CLI source path (npm-based)
-    if [[ -f "$OPENCODE_CLI" ]]; then
+    if [[ -f "$OPENCODE_CLI" ]] && glibc_available; then
         apply_statx_shim
         export OPENCODE_RUNTIME_SELECTED="cli"
         exec "$OPENCODE_CLI" "$@" || true
     fi
 
-    echo "opencode: no runtime found" >&2
+    echo "opencode: no runtime available (Android Bun not found)" >&2
+    echo "opencode: reinstall the package or check: $BUN_RUNTIME" >&2
     exit 1
 }
 
