@@ -9,6 +9,7 @@ BUN_ANDROID_VER="${BUN_ANDROID_VER:-1.3.14}"
 
 log() { printf '[produce-pure] %s\n' "$*"; }
 die() { printf '[produce-pure] ERROR: %s\n' "$*" >&2; exit 1; }
+need() { command -v "$1" >/dev/null 2>&1 || die "missing: $1"; }
 
 ARCH="${ARCH:-aarch64}"
 case "$ARCH" in
