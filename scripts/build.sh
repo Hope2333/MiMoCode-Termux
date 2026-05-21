@@ -33,6 +33,13 @@ install -m 755 "$BUN_ANDROID_INPUT" "$PREFIX_DIR/lib/opencode/runtime/bun"
 log "installed Android-native Bun"
 RUNTIME_MODE="android-only"
 
+# Optional: OpenCode JS bundle (built on CI, run via Android Bun)
+BUNDLE_INPUT="${OPENCODE_BUNDLE_INPUT:-$ROOT_DIR/artifacts/opencode/runtime/bundle.js}"
+if [[ -f "$BUNDLE_INPUT" ]]; then
+	install -m 644 "$BUNDLE_INPUT" "$PREFIX_DIR/lib/opencode/bundle.js"
+	log "installed OpenCode JS bundle"
+fi
+
 install -m 755 "$ROOT_DIR/scripts/launcher.sh" "$PREFIX_DIR/bin/opencode"
 if [[ -f "$ROOT_DIR/tools/plugin-manager.sh" ]]; then
 	install -m 755 "$ROOT_DIR/tools/plugin-manager.sh" "$PREFIX_DIR/lib/opencode/tools/plugin-manager.sh"
