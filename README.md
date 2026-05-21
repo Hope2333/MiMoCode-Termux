@@ -58,15 +58,28 @@ scripts/build.sh            # stage prefix
 scripts/package/package_deb.sh
 ```
 
-## OpenCode integration (future)
+## OpenCode AI assistant (current status)
 
-OpenCode's application code is currently compiled into a glibc-linked binary.
-To make it work with Android-native Bun:
-1. Extract JS source from the compiled binary (tools like `bun-demincer`)
-2. Rebuild as JS bundle: `bun build --target=bun --outfile=bundle.js`
-3. Run with Android Bun: `bun run bundle.js`
+The `opencode` command on this branch runs **Android-native Bun** (a JS runtime).
+The actual OpenCode AI coding assistant is NOT yet available on pure-android because:
 
-See `docs/native-android-research.md` for details.
+1. OpenCode's source code depends on native modules (`@opentui/solid`, etc.)
+   that require `bun build --compile` to bundle correctly
+2. `bun build --compile` does not work on Android (filesystem permission
+   restrictions on `/data/`)
+3. The CI attempts to build a JS bundle from source, but native module
+   dependencies prevent a clean `--target=bun` bundle
+
+**For the full OpenCode AI experience**, use the `glibc-legacy` branch:
+```bash
+git checkout glibc-legacy
+make all VER=<version> PKG=both
+```
+
+The pure-android branch focuses on providing a clean, glibc-free Android Bun
+runtime. OpenCode application integration will be enabled when upstream Bun
+supports `--target=bun-linux-aarch64-android` or when native modules are
+available for Bionic.
 
 ## Repository layout
 
