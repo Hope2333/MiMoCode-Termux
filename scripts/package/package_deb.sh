@@ -16,14 +16,14 @@ command -v dpkg-deb >/dev/null 2>&1 || {
 	exit 1
 }
 
-# Version: prefer opencode binary (gives correct OpenCode version), fallback to Android Bun
-if [[ -x "$STAGED_PREFIX/lib/opencode/runtime/opencode" ]]; then
-	VERSION="${VERSION:-$($STAGED_PREFIX/lib/opencode/runtime/opencode --version 2>/dev/null || echo 0.0.0)}"
-elif [[ -x "$STAGED_PREFIX/lib/opencode/runtime/bun" ]]; then
-	VERSION="${VERSION:-$($STAGED_PREFIX/lib/opencode/runtime/bun --version 2>/dev/null || echo 0.0.0)}"
-else
-	VERSION="${VERSION:-0.0.0}"
+# Version: use explicit VERSION if set (from Makefile), else try binaries
+if [[ -z "${VERSION:-}" && -x "$STAGED_PREFIX/lib/opencode/runtime/opencode" ]]; then
+	VERSION="$($STAGED_PREFIX/lib/opencode/runtime/opencode --version 2>/dev/null || true)"
 fi
+if [[ -z "${VERSION:-}" && -x "$STAGED_PREFIX/lib/opencode/runtime/bun" ]]; then
+	VERSION="$($STAGED_PREFIX/lib/opencode/runtime/bun --version 2>/dev/null || true)"
+fi
+: "${VERSION:=0.0.0}"
 DEB_ROOT="$ROOT_DIR/packaging/dpkg/work"
 OUT_DIR="$ROOT_DIR/packaging/dpkg"
 OUT_FILE="$OUT_DIR/opencode_${VERSION}_${ARCH_DEB}.deb"

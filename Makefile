@@ -75,12 +75,14 @@ steps:
 	@echo "Mix(flatten): $(MIX)"
 
 all: clean runtime stage
-	@if [ "$(PKG)" = "deb" ]; then \
-		$(MAKE) deb; \
+	@V="$(VER)"; \
+	if [ "$$V" = "latest" ]; then V=""; fi; \
+	if [ "$(PKG)" = "deb" ]; then \
+		$(MAKE) deb VERSION=$$V; \
 	elif [ "$(PKG)" = "pacman" ]; then \
-		$(MAKE) pacman; \
+		$(MAKE) pacman VERSION=$$V; \
 	else \
-		$(MAKE) deb && $(MAKE) pacman; \
+		$(MAKE) deb VERSION=$$V && $(MAKE) pacman VERSION=$$V; \
 	fi
 
 batch:

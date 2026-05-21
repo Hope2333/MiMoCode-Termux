@@ -15,14 +15,16 @@ PKGREL="${PKGREL:-1}"
 	exit 1
 }
 
-# Version: prefer opencode binary (gives correct OpenCode version), fallback to Android Bun
-if [[ -x "$STAGED_PREFIX/lib/opencode/runtime/opencode" ]]; then
-	VERSION="${VERSION:-$($STAGED_PREFIX/lib/opencode/runtime/opencode --version 2>/dev/null || true)}"
-elif [[ -x "$STAGED_PREFIX/lib/opencode/runtime/bun" ]]; then
-	VERSION="${VERSION:-$($STAGED_PREFIX/lib/opencode/runtime/bun --version 2>/dev/null || true)}"
+# Version: use explicit VERSION if set (from Makefile), else try binaries
+if [[ -z "${VERSION:-}" && -x "$STAGED_PREFIX/lib/opencode/runtime/opencode" ]]; then
+	VERSION="$($STAGED_PREFIX/lib/opencode/runtime/opencode --version 2>/dev/null || true)"
+fi
+if [[ -z "${VERSION:-}" && -x "$STAGED_PREFIX/lib/opencode/runtime/bun" ]]; then
+	VERSION="$($STAGED_PREFIX/lib/opencode/runtime/bun --version 2>/dev/null || true)"
 fi
 [[ -n "$VERSION" ]] || {
 	echo "Error: unable to determine version from staged runtime"
+	echo "Set VERSION env var explicitly, e.g.: VERSION=1.15.1 ./scripts/package/package_pacman.sh"
 	exit 1
 }
 
