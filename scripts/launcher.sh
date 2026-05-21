@@ -5,14 +5,14 @@ SELF_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Runtime paths
 OPENCODE_CLI="$SELF_DIR/../lib/opencode/packages/opencode/bin/opencode"
-OPENCODE_RUNTIME="$SELF_DIR/../lib/opencode/runtime/opencode"  # glibc fallback
+OPENCODE_RUNTIME="$SELF_DIR/../lib/opencode/runtime/opencode"  # OpenCode app binary
 STATX_SHIM="$SELF_DIR/../lib/opencode/lib/libstatx-shim.so"
 
-# Android-native Bun runtime (primary)
+# Android-native Bun runtime (interpreter only, for future JS bundle use)
 BUN_RUNTIME="$SELF_DIR/../lib/opencode/runtime/bun"
 PREFIX="${PREFIX:-/data/data/com.termux/files/usr}"
 
-# glibc availability check (for fallback binary)
+# glibc availability check (needed by OpenCode app binary)
 glibc_available() {
     [[ -f "$PREFIX/glibc/lib/ld-linux-aarch64.so.1" ]] || \
     [[ -f "$PREFIX/glibc/lib/libc.so.6" ]] || \
@@ -20,22 +20,39 @@ glibc_available() {
     (command -v pacman >/dev/null 2>&1 && pacman -Q glibc >/dev/null 2>&1)
 }
 
-# Determine which runtime to use: Android Bun > glibc wrapped > CLI
+# Runtime selection: OpenCode app > Android Bun interpreter
 select_runtime() {
-    # Android-native path: Bun (Bionic-linked, no glibc needed)
-    if [[ -x "$BUN_RUNTIME" ]]; then
-        export OPENCODE_RUNTIME_SELECTED="android-bun"
-        exec "$BUN_RUNTIME" "$@"
+    # Primary path: OpenCode app binary (has the actual AI coding assistant code)
+    if [[ -x "$OPENCODE_RUNTIME" ]] && glibc_available; then
+        # OpenCode binary is glibc-linked. On Termux, exec it through glibc's
+        # dynamic linker (the binary's INTERP path /lib/ld-linux-aarch64.so.1
+        # doesn't exist on stock Termux — glibc installs it under $PREFIX/glibc).
+        GLIBC_LD="$PREFIX/glibc/lib/ld-linux-aarch64.so.1"
+        if [[ -x "$GLIBC_LD" ]]; then
+            export OPENCODE_RUNTIME_SELECTED="opencode-app"
+            exec "$GLIBC_LD" "$OPENCODE_RUNTIME" "$@"
+        fi
+        # Fallback: direct exec (unlikely to work on Termux)
+        apply_statx_shim
+        export OPENCODE_RUNTIME_SELECTED="opencode-app"
+        exec "$OPENCODE_RUNTIME" "$@"
     fi
 
-    # glibc-wrapped fallback path (only if glibc is installed)
-    if [[ -x "$OPENCODE_RUNTIME" ]] && glibc_available; then
-        apply_statx_shim
-        export OPENCODE_RUNTIME_SELECTED="glibc-wrapped"
-        exec "$OPENCODE_RUNTIME" "$@"
-    elif [[ -x "$OPENCODE_RUNTIME" ]] && ! glibc_available; then
-        echo "opencode: glibc-wrapped binary found but glibc is not installed" >&2
-        echo "opencode: install glibc: apt install glibc-repo && apt install glibc openssl-glibc" >&2
+    # If OpenCode binary exists but glibc is missing, give clear instructions
+    if [[ -x "$OPENCODE_RUNTIME" ]] && ! glibc_available; then
+        echo "opencode: OpenCode binary found but glibc is not installed." >&2
+        echo "opencode: Install glibc:" >&2
+        echo "  apt install -y glibc-repo && apt update && apt install -y glibc openssl-glibc" >&2
+        echo "opencode: Then run 'opencode' again." >&2
+        exit 1
+    fi
+
+    # Android Bun interpreter (no glibc needed, but limited to bun commands only)
+    if [[ -x "$BUN_RUNTIME" ]]; then
+        echo "opencode: Android Bun runtime found but no OpenCode application binary." >&2
+        echo "opencode: The package installation may be incomplete." >&2
+        echo "opencode: For now, you can use 'opencode --bun' for Bun commands." >&2
+        exec "$BUN_RUNTIME" "$@"
     fi
 
     # CLI source path (npm-based)
@@ -45,8 +62,8 @@ select_runtime() {
         exec "$OPENCODE_CLI" "$@" || true
     fi
 
-    echo "opencode: no runtime available (Android Bun not found)" >&2
-    echo "opencode: reinstall the package or check: $BUN_RUNTIME" >&2
+    echo "opencode: no runtime found" >&2
+    echo "opencode: reinstall the package" >&2
     exit 1
 }
 
