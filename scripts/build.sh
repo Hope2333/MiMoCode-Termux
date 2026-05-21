@@ -9,6 +9,8 @@ OUT_DIR="${OPENCODE_OUT_DIR:-$ROOT_DIR/artifacts/staged}"
 PREFIX_DIR="${OPENCODE_PREFIX_DIR:-$OUT_DIR/prefix}"
 RUNTIME_INPUT="${OPENCODE_RUNTIME_INPUT:-$ROOT_DIR/artifacts/opencode/runtime/opencode-termux}"
 RUNTIME_FALLBACK_INPUT="${OPENCODE_RUNTIME_FALLBACK_INPUT:-$ROOT_DIR/artifacts/opencode/runtime/opencode}"
+BUN_ANDROID_INPUT="${OPENCODE_BUN_ANDROID_INPUT:-$ROOT_DIR/artifacts/opencode/runtime/bun-android}"
+BUNDLE_JS_INPUT="${OPENCODE_BUNDLE_JS_INPUT:-$ROOT_DIR/artifacts/opencode/runtime/bundle.js}"
 
 ensure_dir "$PREFIX_DIR/lib/opencode/runtime"
 ensure_dir "$PREFIX_DIR/bin"
@@ -37,6 +39,17 @@ elif [[ -f "$RUNTIME_FALLBACK_INPUT" ]]; then
 	RUNTIME_MODE="release-raw"
 else
 	fail "runtime not found: $RUNTIME_INPUT or $RUNTIME_FALLBACK_INPUT"
+fi
+
+# Optional: Android-native Bun runtime (used by launcher when available)
+if [[ -f "$BUN_ANDROID_INPUT" ]]; then
+	install -m 755 "$BUN_ANDROID_INPUT" "$PREFIX_DIR/lib/opencode/runtime/bun"
+	log "installed Android-native Bun runtime"
+fi
+# Optional: JS bundle for Android-native launcher path
+if [[ -f "$BUNDLE_JS_INPUT" ]]; then
+	install -m 644 "$BUNDLE_JS_INPUT" "$PREFIX_DIR/lib/opencode/runtime/bundle.js"
+	log "installed JS bundle for Android-native launcher"
 fi
 
 install -m 755 "$ROOT_DIR/scripts/launcher.sh" "$PREFIX_DIR/bin/opencode"

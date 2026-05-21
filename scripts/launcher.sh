@@ -24,21 +24,21 @@ select_runtime() {
     # Android-native path: Bun + JS bundle (no glibc, no statx shim needed)
     if [[ -z "${OPENCODE_DISABLE_ANDROID_BUNDLE:-}" && -x "$BUN_RUNTIME" && -n "$BUNDLE_JS" ]]; then
         export OPENCODE_RUNTIME_SELECTED="android-bun"
-        exec "$BUN_RUNTIME" run "$BUNDLE_JS" "$@"
+        exec "$BUN_RUNTIME" run "$BUNDLE_JS" "$@" || true
     fi
 
     # glibc-wrapped path (backward compatible, needs statx shim)
     if [[ -x "$OPENCODE_RUNTIME" ]]; then
         apply_statx_shim
         export OPENCODE_RUNTIME_SELECTED="glibc-wrapped"
-        exec "$OPENCODE_RUNTIME" "$@"
+        exec "$OPENCODE_RUNTIME" "$@" || true
     fi
 
     # CLI source path (npm-based)
     if [[ -f "$OPENCODE_CLI" ]]; then
         apply_statx_shim
         export OPENCODE_RUNTIME_SELECTED="cli"
-        exec "$OPENCODE_CLI" "$@"
+        exec "$OPENCODE_CLI" "$@" || true
     fi
 
     echo "opencode: no runtime found" >&2
