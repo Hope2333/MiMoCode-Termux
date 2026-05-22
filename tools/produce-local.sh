@@ -4,6 +4,7 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+PREFIX="${PREFIX:-/data/data/com.termux/files/usr}"
 RUNTIME_DIR="$ROOT_DIR/artifacts/opencode/runtime"
 BUN_OUT="$RUNTIME_DIR/bun"
 BUN_ANDROID_VER="${BUN_ANDROID_VER:-1.3.14}"
@@ -31,6 +32,9 @@ log "Android Bun v$BUN_ANDROID_VER for $BUN_ARCH"
 # Clean runtime dir (but preserve cache)
 rm -rf "$RUNTIME_DIR"
 mkdir -p "$RUNTIME_DIR" "$CACHE_DIR"
+
+# Extract directory (use TMPDIR or PREFIX/tmp, NOT /tmp which is unwritable on Termux)
+EXTRACT_DIR="${TMPDIR:-$PREFIX/tmp}/bun-extract-$$"
 
 if [[ -f "$CACHE_BIN" && -x "$CACHE_BIN" ]]; then
 	# Cache hit: use cached binary directly
