@@ -1,0 +1,20 @@
+diff --git a/src/runtime/cli/build_command.zig b/src/runtime/cli/build_command.zig
+index 56326f0..b839932 100644
+--- a/src/runtime/cli/build_command.zig
++++ b/src/runtime/cli/build_command.zig
+@@ -43,6 +43,16 @@ pub const BuildCommand = struct {
+ 
+         var this_transpiler = try transpiler.Transpiler.init(allocator, log, ctx.args, null);
+ 
++        // On Android/Termux, /data/data/ directories may be SELinux-restricted.
++        // Fall back to $PREFIX or $HOME if CWD can't be read.
++        if (comptime Environment.isAndroid) {
++            _ = this_transpiler.resolver.readDirInfo(this_transpiler.fs.top_level_dir) catch {
++                const fallback = bun.getenvZ("PREFIX") orelse bun.getenvZ("HOME") orelse "/tmp";
++                this_transpiler.fs.top_level_dir = fallback;
++            };
++        }
++
+         if (fetcher) |fetch| {
+             this_transpiler.options.entry_points = fetch.entry_points;
+             this_transpiler.resolver.opts.entry_points = fetch.entry_points;

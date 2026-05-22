@@ -11,9 +11,13 @@ MORE ?=
 ODIR ?=
 MIX ?= 0
 
+# Release upload target variables
+TAG ?= Push$(shell date +%y%m%d)
+REPO ?= Hope2333/opencode-termux
+
 OUTPUT_ROOT := $(if $(ODIR),$(ODIR),$(CURDIR)/packing)
 
-.PHONY: help all runtime stage deb pacman batch clean status steps matrix selfcheck
+.PHONY: help all runtime stage deb pacman batch clean status steps matrix selfcheck release-upload
 
 help:
 	@echo "OpenCode Termux build helper"
@@ -149,3 +153,35 @@ matrix:
 clean:
 	rm -rf artifacts/staged packaging/dpkg/work packaging/pacman/pkg packaging/pacman/src
 	@echo "Clean complete"
+
+# ── Release upload (not shown in help) ──────────────────────────────────
+# Automates: batch build → upload all assets to existing or new release tag.
+# Usage:
+#   make release-upload TAG=Push260522 VERS='1.15.[1-7]'
+#   make release-upload TAG=Push260522 VERS='1.15.[1-7]' PKG=deb
+#   make release-upload VERS='1.2.[10-20]' REPO=Hope2333/opencode-termux
+#
+# Defaults:
+#   TAG     = Push<YYMMDD> (auto-generated)
+#   VERS    = (required)
+#   PKG     = both
+#   REPO    = Hope2333/opencode-termux
+release-upload:
+	@if [ -z "$(VERS)" ]; then \
+		echo "Error: VERS is required. Example: make release-upload VERS='1.15.[1-7]' TAG=Push260522"; \
+		exit 1; \
+	fi
+	@echo "=== Release upload: TAG=$(TAG) VERS=$(VERS) PKG=$(PKG) REPO=$(REPO) ==="
+	$(MAKE) batch VERS='$(VERS)' PKG='$(PKG)' ODIR='/tmp/oc-release-$(TAG)' MIX=1
+	@echo "=== Uploading to release $(TAG) ==="; \
+	if ! gh release view "$(TAG)" --repo "$(REPO)" >/dev/null 2>&1; then \
+		echo "Creating release $(TAG)..."; \
+		gh release create "$(TAG)" --repo "$(REPO)" --title "$(TAG)" --notes "Automated build $$(date -u +%Y-%m-%d)" 2>&1 || exit 1; \
+	fi; \
+	for f in /tmp/oc-release-$(TAG)/opencode_*.deb /tmp/oc-release-$(TAG)/opencode-*.pkg.*; do \
+		if [ -f "$$f" ]; then \
+			echo "  uploading $$(basename $$f)..."; \
+			gh release upload "$(TAG)" "$$f" --repo "$(REPO)" --clobber 2>&1 || true; \
+		fi; \
+	done; \
+	echo "=== Done: https://github.com/$(REPO)/releases/tag/$(TAG) ==="
