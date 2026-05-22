@@ -7,6 +7,15 @@ set -euo pipefail
 SELF_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BUN_RUNTIME="$SELF_DIR/../lib/opencode/runtime/bun"
 BUNDLE_JS="$SELF_DIR/../lib/opencode/bundle.js"
+OPENCODE_VERSION="1.15.7"
+
+# Version override: intercept --version to show OpenCode version
+for arg in "$@"; do
+	if [[ "$arg" == "--version" || "$arg" == "-v" ]]; then
+		echo "$OPENCODE_VERSION"
+		exit 0
+	fi
+done
 
 cleanup_tty_full() {
 	if [ -t 1 ]; then
