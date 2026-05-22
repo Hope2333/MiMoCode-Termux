@@ -7,15 +7,6 @@ set -euo pipefail
 SELF_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BUN_RUNTIME="$SELF_DIR/../lib/opencode/runtime/bun"
 BUNDLE_JS="$SELF_DIR/../lib/opencode/bundle.js"
-OPENCODE_VERSION="1.15.7"
-
-# Version override: intercept --version to show OpenCode version
-for arg in "$@"; do
-	if [[ "$arg" == "--version" || "$arg" == "-v" ]]; then
-		echo "$OPENCODE_VERSION"
-		exit 0
-	fi
-done
 
 cleanup_tty_full() {
 	if [ -t 1 ]; then
@@ -52,7 +43,7 @@ fi
 if [[ -f "$BUNDLE_JS" ]]; then
 	exec "$BUN_RUNTIME" run "$BUNDLE_JS" "$@"
 else
-	echo "opencode: JS bundle not found at $BUNDLE_JS" >&2
-	echo "opencode: OpenCode AI features require the JS bundle" >&2
+	# No JS bundle: opencode IS bun (the Android-native JS runtime)
+	# OpenCode AI features require the JS bundle (see README)
 	exec "$BUN_RUNTIME" "$@"
 fi
