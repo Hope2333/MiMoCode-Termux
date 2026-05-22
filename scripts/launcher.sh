@@ -1,14 +1,9 @@
 #!/data/data/com.termux/files/usr/bin/bash
-# scripts/launcher.sh — Pure Android launcher
-# Runs OpenCode JS bundle via Android-native Bun.
-# No glibc, no statx shim, no bun-termux-loader.
+# scripts/launcher.sh — OpenCode launcher for Termux
 set -euo pipefail
 
 SELF_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-# Runtime paths: OpenCode app > Android Bun
 OPENCODE_RUNTIME="$SELF_DIR/../lib/opencode/runtime/opencode"
-BUN_RUNTIME="$SELF_DIR/../lib/opencode/runtime/bun"
-BUNDLE_JS="$SELF_DIR/../lib/opencode/bundle.js"
 
 cleanup_tty_full() {
 	if [ -t 1 ]; then
@@ -37,21 +32,16 @@ cleanup_state_locks
 : "${OPENCODE_DISABLE_DEFAULT_PLUGINS:=1}"
 export OPENCODE_DISABLE_DEFAULT_PLUGINS
 
-if [[ ! -x "$BUN_RUNTIME" ]]; then
-	echo "opencode: Android Bun runtime not found" >&2
+if [[ ! -x "$OPENCODE_RUNTIME" ]]; then
+	echo "opencode: runtime not found" >&2
 	exit 1
 fi
 
-if [[ -x "$OPENCODE_RUNTIME" ]]; then
-	# Real OpenCode app binary (wrapped for Android/Bionic)
-	exec "$OPENCODE_RUNTIME" "$@"
-elif [[ -f "$BUNDLE_JS" ]]; then
-	# JS bundle via Android Bun
-	exec "$BUN_RUNTIME" run "$BUNDLE_JS" "$@"
-elif [[ -x "$BUN_RUNTIME" ]]; then
-	# Android Bun JS runtime (standalone)
-	exec "$BUN_RUNTIME" "$@"
+"$OPENCODE_RUNTIME" "$@"
+rc=$?
+if [ "$rc" -eq 0 ]; then
+	cleanup_tty_soft
 else
-	echo "opencode: no runtime found" >&2
-	exit 1
+	cleanup_tty_full
 fi
+exit $rc

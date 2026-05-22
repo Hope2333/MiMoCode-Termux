@@ -1,74 +1,64 @@
 #!/data/data/com.termux/files/usr/bin/bash
-# tools/produce-local.sh — Pure Android: download Android native Bun only
-# With local caching to avoid re-downloading on batch builds.
+# tools/produce-local.sh — Build OpenCode for Termux
+# Downloads from npm + wraps with bun-termux-loader
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-PREFIX="${PREFIX:-/data/data/com.termux/files/usr}"
 RUNTIME_DIR="$ROOT_DIR/artifacts/opencode/runtime"
-BUN_OUT="$RUNTIME_DIR/bun"
-BUN_ANDROID_VER="${BUN_ANDROID_VER:-1.3.14}"
+OPENCODE_OUT="$RUNTIME_DIR/opencode-termux"
+INPUT_VER="${1:-}"
 
-log() { printf '[produce-pure] %s\n' "$*"; }
-die() { printf '[produce-pure] ERROR: %s\n' "$*" >&2; exit 1; }
+log() { printf '[produce] %s\n' "$*"; }
+die() { printf '[produce] ERROR: %s\n' "$*" >&2; exit 1; }
 
-ARCH="${ARCH:-aarch64}"
-case "$ARCH" in
-	aarch64|arm64) BUN_ARCH="aarch64" ;;
-	x86_64|amd64)  BUN_ARCH="x64" ;;
-	*) die "unsupported arch: $ARCH" ;;
-esac
+[[ -z "$INPUT_VER" ]] && INPUT_VER="$(npm view opencode-linux-arm64 version 2>/dev/null || true)"
+[[ -n "$INPUT_VER" ]] || die "no version specified"
+VER="$INPUT_VER"
 
-BUN_ZIP="bun-linux-${BUN_ARCH}-android.zip"
-BUN_URL="https://github.com/oven-sh/bun/releases/download/bun-v${BUN_ANDROID_VER}/${BUN_ZIP}"
+CACHE_DIR="${CACHE_DIR:-$HOME/.cache/opencode-termux}"
+LOADER_DIR="/data/data/com.termux/files/home/bun-termux-loader"
+EXTRACT="${TMPDIR:-$PREFIX/tmp}/produce-$$"
+mkdir -p "$RUNTIME_DIR" "$CACHE_DIR" "$EXTRACT"
+trap 'rm -rf $EXTRACT' EXIT
 
-# Cache under home directory (survives .work cleanup across batch iterations)
-CACHE_DIR="${CACHE_DIR:-$HOME/.cache/opencode-termux/bun-android}"
-CACHE_ZIP="$CACHE_DIR/$BUN_ZIP"
-CACHE_BIN="$CACHE_DIR/bun-$BUN_ARCH-$BUN_ANDROID_VER"
+log "opencode v$VER"
 
-log "Android Bun v$BUN_ANDROID_VER for $BUN_ARCH"
-
-# Clean runtime dir (but preserve cache)
-rm -rf "$RUNTIME_DIR"
-mkdir -p "$RUNTIME_DIR" "$CACHE_DIR"
-
-# Extract directory (use TMPDIR or PREFIX/tmp, NOT /tmp which is unwritable on Termux)
-EXTRACT_DIR="${TMPDIR:-$PREFIX/tmp}/bun-extract-$$"
-
-if [[ -f "$CACHE_BIN" && -x "$CACHE_BIN" ]]; then
-	# Cache hit: use cached binary directly
-	log "cache hit: $CACHE_BIN"
-	install -m 755 "$CACHE_BIN" "$BUN_OUT"
-elif [[ -f "$CACHE_ZIP" ]]; then
-	# Cache hit (zip): extract from cached zip
-	log "cache hit (zip): $CACHE_ZIP"
-	mkdir -p ${EXTRACT_DIR}
-	unzip -o "$CACHE_ZIP" -d ${EXTRACT_DIR} >/dev/null 2>&1
-	BUN_BIN="$(find ${EXTRACT_DIR} -name 'bun' -type f | head -1)"
-	if [[ -n "$BUN_BIN" && -x "$BUN_BIN" ]]; then
-		install -m 755 "$BUN_BIN" "$CACHE_BIN"
-		install -m 755 "$BUN_BIN" "$BUN_OUT"
-	fi
-	rm -rf ${EXTRACT_DIR}
-else
-	# Cache miss: download
-	log "downloading from $BUN_URL"
-	need curl
-	curl -fL "$BUN_URL" -o "$CACHE_ZIP" || die "download failed (try: https_proxy=http://127.0.0.1:7890)"
-	log "downloaded to cache: $CACHE_ZIP"
-	mkdir -p ${EXTRACT_DIR}
-	unzip -o "$CACHE_ZIP" -d ${EXTRACT_DIR} >/dev/null 2>&1 || die "unzip failed"
-	BUN_BIN="$(find ${EXTRACT_DIR} -name 'bun' -type f | head -1)"
-	[[ -n "$BUN_BIN" && -x "$BUN_BIN" ]] || die "bun binary not found in zip"
-	install -m 755 "$BUN_BIN" "$CACHE_BIN"
-	install -m 755 "$BUN_BIN" "$BUN_OUT"
-	rm -rf ${EXTRACT_DIR}
+# Check cache
+CACHE_BIN="$CACHE_DIR/opencode-$VER"
+if [[ -f "$CACHE_BIN" ]]; then
+	log "cache hit"
+	install -m 755 "$CACHE_BIN" "$OPENCODE_OUT"
+	"$OPENCODE_OUT" --version 2>/dev/null || true
+	rm -rf "$ROOT_DIR/artifacts/staged" "$ROOT_DIR/packaging/dpkg/work" "$ROOT_DIR/packaging/pacman/src"
+	log "DONE"
+	exit 0
 fi
 
-log "installed: $(file "$BUN_OUT" | cut -d: -f2)"
-log "version: $("$BUN_OUT" --version 2>/dev/null || echo 'unknown')"
+# Download from npm
+need npm
+cd "$EXTRACT"
+log "downloading opencode-linux-arm64@$VER from npm"
+npm pack "opencode-linux-arm64@$VER" >/dev/null 2>&1 || die "npm pack failed"
+tar -xzf opencode-linux-arm64-*.tgz 2>/dev/null
+RAW="package/bin/opencode"
+[[ -f "$RAW" && -x "$RAW" ]] || die "binary not found"
 
-# Clean build artifacts (not cache)
+# Wrap with bun-termux-loader
+if [[ ! -f "$LOADER_DIR/build.py" ]]; then
+	log "cloning bun-termux-loader"
+	git clone --depth 1 https://github.com/Hope2333/bun-termux-loader "$EXTRACT/loader" 2>/dev/null || die "clone failed"
+	LOADER_DIR="$EXTRACT/loader"
+fi
+
+log "wrapping for Termux"
+python3 "$LOADER_DIR/build.py" "$RAW" --wrapper "$LOADER_DIR/wrapper" --shim "$LOADER_DIR/bunfs_shim.so" 2>&1 | tail -3
+WRAPPED="${RAW}-termux"
+[[ -f "$WRAPPED" ]] || die "wrapping failed"
+
+install -m 755 "$WRAPPED" "$OPENCODE_OUT"
+install -m 755 "$WRAPPED" "$CACHE_BIN"
+log "done: $(file "$OPENCODE_OUT" | cut -d: -f2)"
+log "version: $("$OPENCODE_OUT" --version 2>/dev/null || echo '?')"
+
 rm -rf "$ROOT_DIR/artifacts/staged" "$ROOT_DIR/packaging/dpkg/work" "$ROOT_DIR/packaging/pacman/src"
 log "DONE"

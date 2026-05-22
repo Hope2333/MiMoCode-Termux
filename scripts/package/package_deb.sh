@@ -49,7 +49,7 @@ cat >"$DEB_ROOT/DEBIAN/postinst" <<'POSTINST'
 set -e
 echo "OpenCode for Termux installed"
 echo "Run: opencode --version"
-echo "Runtime: Android-native Bun (Bionic)"
+echo "Runtime: glibc (bun-termux-loader wrapped)"
 HOOK_RUNNER="/data/data/com.termux/files/usr/lib/opencode/tools/run-system-skills.sh"
 if [[ -x "$HOOK_RUNNER" ]]; then
   OPENCODE_HOOK_STRICT=0 OPENCODE_HOOK_ENABLE_NETWORK=0 "$HOOK_RUNNER" post_install || true

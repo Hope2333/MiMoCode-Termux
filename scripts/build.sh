@@ -8,7 +8,6 @@ OPENCODE_SRC_DIR="${OPENCODE_SRC_DIR:-$ROOT_DIR/sources/opencode/repo}"
 OUT_DIR="${OPENCODE_OUT_DIR:-$ROOT_DIR/artifacts/staged}"
 PREFIX_DIR="${OPENCODE_PREFIX_DIR:-$OUT_DIR/prefix}"
 RUNTIME_INPUT="${OPENCODE_RUNTIME_INPUT:-$ROOT_DIR/artifacts/opencode/runtime/opencode-termux}"
-BUN_ANDROID_INPUT="${OPENCODE_BUN_ANDROID_INPUT:-$ROOT_DIR/artifacts/opencode/runtime/bun}"
 
 ensure_dir "$PREFIX_DIR/lib/opencode/runtime"
 ensure_dir "$PREFIX_DIR/bin"
@@ -29,25 +28,13 @@ else
 	log "source tree not found; continuing runtime-only staging"
 fi
 
-# Install wrapped OpenCode binary (real OpenCode app, bun-termux-loader wrapped)
+# Install wrapped OpenCode binary (the real OpenCode app)
 if [[ -f "$RUNTIME_INPUT" ]]; then
 	install -m 755 "$RUNTIME_INPUT" "$PREFIX_DIR/lib/opencode/runtime/opencode"
 	log "installed OpenCode app binary"
-fi
-
-# Install Android-native Bun runtime (companion JS runtime)
-if [[ -f "$BUN_ANDROID_INPUT" ]]; then
-	install -m 755 "$BUN_ANDROID_INPUT" "$PREFIX_DIR/lib/opencode/runtime/bun"
-	log "installed Android-native Bun"
-fi
-
-# Determine runtime mode
-if [[ -f "$RUNTIME_INPUT" ]]; then
 	RUNTIME_MODE="opencode-wrapped"
-elif [[ -f "$BUN_ANDROID_INPUT" ]]; then
-	RUNTIME_MODE="android-bun-only"
 else
-	fail "no runtime found"
+	fail "no runtime found at $RUNTIME_INPUT"
 fi
 
 # Optional: OpenCode JS bundle (built on CI, run via Android Bun)
