@@ -16,8 +16,8 @@ _repo_root="${REPO_ROOT:-$(cd "$(dirname "$0")/../.." && pwd)}"
 _staged_prefix="${STAGED_PREFIX:-${_repo_root}/artifacts/staged/prefix}"
 
 prepare() {
-  [[ -x "${_staged_prefix}/lib/opencode/runtime/bun" ]] || {
-    error "missing Android Bun at ${_staged_prefix}/lib/opencode/runtime/bun"
+  [[ -x "${_staged_prefix}/lib/opencode/runtime/opencode" ]] || {
+    error "missing runtime at ${_staged_prefix}/lib/opencode/runtime/opencode"
     return 1
   }
   [[ -x "${_staged_prefix}/bin/opencode" ]] || {
