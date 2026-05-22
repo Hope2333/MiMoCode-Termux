@@ -10,6 +10,7 @@ INPUT_VER="${1:-}"
 
 log() { printf '[produce] %s\n' "$*"; }
 die() { printf '[produce] ERROR: %s\n' "$*" >&2; exit 1; }
+need() { command -v "$1" >/dev/null 2>&1 || die "missing: $1"; }
 
 [[ -z "$INPUT_VER" ]] && INPUT_VER="$(npm view opencode-linux-arm64 version 2>/dev/null || true)"
 [[ -n "$INPUT_VER" ]] || die "no version specified"
