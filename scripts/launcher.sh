@@ -5,6 +5,8 @@
 set -euo pipefail
 
 SELF_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Runtime paths: OpenCode app > Android Bun
+OPENCODE_RUNTIME="$SELF_DIR/../lib/opencode/runtime/opencode"
 BUN_RUNTIME="$SELF_DIR/../lib/opencode/runtime/bun"
 BUNDLE_JS="$SELF_DIR/../lib/opencode/bundle.js"
 
@@ -40,10 +42,16 @@ if [[ ! -x "$BUN_RUNTIME" ]]; then
 	exit 1
 fi
 
-if [[ -f "$BUNDLE_JS" ]]; then
+if [[ -x "$OPENCODE_RUNTIME" ]]; then
+	# Real OpenCode app binary (wrapped for Android/Bionic)
+	exec "$OPENCODE_RUNTIME" "$@"
+elif [[ -f "$BUNDLE_JS" ]]; then
+	# JS bundle via Android Bun
 	exec "$BUN_RUNTIME" run "$BUNDLE_JS" "$@"
-else
-	# No JS bundle: opencode IS bun (the Android-native JS runtime)
-	# OpenCode AI features require the JS bundle (see README)
+elif [[ -x "$BUN_RUNTIME" ]]; then
+	# Android Bun JS runtime (standalone)
 	exec "$BUN_RUNTIME" "$@"
+else
+	echo "opencode: no runtime found" >&2
+	exit 1
 fi
