@@ -39,27 +39,27 @@ if [[ -f "$CACHE_BIN" && -x "$CACHE_BIN" ]]; then
 elif [[ -f "$CACHE_ZIP" ]]; then
 	# Cache hit (zip): extract from cached zip
 	log "cache hit (zip): $CACHE_ZIP"
-	mkdir -p /tmp/bun-extract-$$
-	unzip -o "$CACHE_ZIP" -d /tmp/bun-extract-$$ >/dev/null 2>&1
-	BUN_BIN="$(find /tmp/bun-extract-$$ -name 'bun' -type f | head -1)"
+	mkdir -p ${EXTRACT_DIR}
+	unzip -o "$CACHE_ZIP" -d ${EXTRACT_DIR} >/dev/null 2>&1
+	BUN_BIN="$(find ${EXTRACT_DIR} -name 'bun' -type f | head -1)"
 	if [[ -n "$BUN_BIN" && -x "$BUN_BIN" ]]; then
 		install -m 755 "$BUN_BIN" "$CACHE_BIN"
 		install -m 755 "$BUN_BIN" "$BUN_OUT"
 	fi
-	rm -rf /tmp/bun-extract-$$
+	rm -rf ${EXTRACT_DIR}
 else
 	# Cache miss: download
 	log "downloading from $BUN_URL"
 	need curl
 	curl -fL "$BUN_URL" -o "$CACHE_ZIP" || die "download failed (try: https_proxy=http://127.0.0.1:7890)"
 	log "downloaded to cache: $CACHE_ZIP"
-	mkdir -p /tmp/bun-extract-$$
-	unzip -o "$CACHE_ZIP" -d /tmp/bun-extract-$$ >/dev/null 2>&1 || die "unzip failed"
-	BUN_BIN="$(find /tmp/bun-extract-$$ -name 'bun' -type f | head -1)"
+	mkdir -p ${EXTRACT_DIR}
+	unzip -o "$CACHE_ZIP" -d ${EXTRACT_DIR} >/dev/null 2>&1 || die "unzip failed"
+	BUN_BIN="$(find ${EXTRACT_DIR} -name 'bun' -type f | head -1)"
 	[[ -n "$BUN_BIN" && -x "$BUN_BIN" ]] || die "bun binary not found in zip"
 	install -m 755 "$BUN_BIN" "$CACHE_BIN"
 	install -m 755 "$BUN_BIN" "$BUN_OUT"
-	rm -rf /tmp/bun-extract-$$
+	rm -rf ${EXTRACT_DIR}
 fi
 
 log "installed: $(file "$BUN_OUT" | cut -d: -f2)"
