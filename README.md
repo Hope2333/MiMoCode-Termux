@@ -29,6 +29,14 @@ apt install -y glibc openssl-glibc
 apt install -y /path/to/opencode_<version>_aarch64.deb
 ```
 
+### Path B: pacman (secondary)
+
+```bash
+pacman -Syu
+pacman -S glibc openssl-glibc
+pacman -U /path/to/opencode-<version>-aarch64.pkg.tar.xz
+```
+
 ### Optional: Android-native Bun
 
 ```bash
