@@ -226,3 +226,75 @@ Maintainer: `Hope2333(幽零小喵) <u0catmiao@proton.me>`
 - Android-native Bun: <https://github.com/Hope2333/bun-termux> (pure-android branch)
 - Upstream Bun (Android builds): <https://github.com/oven-sh/bun>
 - Research doc: `docs/native-android-research.md`
+
+---
+
+## Why pure-Bionic OpenCode is not yet possible
+
+This branch's name (`pure-android`) reflects its **goal**, not its current
+state. The obstacles preventing a truly glibc-free OpenCode are:
+
+### 1. Compilation: `bun build --compile` is blocked on Android
+
+Bun's `--compile` flag scans the filesystem from `/` to resolve imports and
+native modules. On Android, `/data/` is permission-restricted (`AccessDenied`),
+causing all `bun build` operations (with or without `--compile`) to fail.
+There is no known workaround — it's hardcoded in Bun's Zig source.
+
+```bash
+bun build ./src/index.ts            # ❌ Cannot read directory "/data/": AccessDenied
+bun build --compile ./src/index.ts  # ❌ same
+```
+
+### 2. Android Bun has no "compiled app" entry point
+
+The Android Bun binary (v1.3.14) is a **pure interpreter** — it starts as
+`bun`, not as a Bun-compiled application. The ELF entry point is at offset
+`0x1f00200` (interpreter mode) instead of the RX segment base (compiled-app
+mode). The compiled-app startup code (`mov x5, x0; ldr x1, [sp]` pattern)
+does **not exist** in the binary. Simply concatenating Android Bun + JS
+payload produces a binary that runs as `bun --help`, not as OpenCode.
+
+### 3. JS bytecode is not portable
+
+The JS extracted from the upstream binary is **compiled bytecode**, not
+TypeScript source. It cannot be run with `bun run` — it requires the
+`bun build --compile` loading path, which only exists in binaries produced
+by that process.
+
+### 4. Native modules lack Bionic builds
+
+OpenCode depends on `@opentui/solid` (TUI framework) and `@parcel/watcher`
+(file watcher). These ship with glibc `.so` files. Bionic-compiled versions
+do not exist publicly.
+
+### 5. Upstream Bun has no Android compile target
+
+```bash
+bun build --compile --target=bun-linux-arm64           # ✅ works (produces glibc binary)
+bun build --compile --target=bun-linux-aarch64-android # ❌ does not exist
+```
+
+There is no `--target` for Android in Bun's build system. Adding it requires
+changes to Bun's Zig/C++ source code and WebKit/JavaScriptCore integration.
+
+---
+
+## This branch's commitment
+
+This branch exists specifically to **track and resolve** these obstacles.
+The path forward:
+
+| Timeline | Milestone |
+|----------|-----------|
+| **Now** | bun-termux-loader wrapping (works, needs glibc) |
+| **Short-term** | Fork Bun, patch `/data/` scan, add Android compile target |
+| **Medium-term** | Build Android-native OpenCode on CI with forked Bun |
+| **Goal** | `opencode` → runs on Termux, **zero glibc**, single Bionic binary |
+
+Every constraint documented here has a corresponding issue or experiment in
+the repo. When upstream Bun or OpenCode removes any of these blockers, this
+branch will switch immediately.
+
+**This is not a dead end. It's a work in progress.**
+
