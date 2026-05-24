@@ -1,18 +1,26 @@
-# opencode-termux
+# opencode-termux — pure-android branch
 
-OpenCode AI coding assistant for Termux/Android.
+**This is the current mainline branch.** It produces OpenCode packages using
+bun-termux-loader to wrap the upstream `opencode-linux-arm64` binary for
+Android/Bionic. glibc is required at runtime (the wrapper loads it via
+userland exec).
+
+**Looking for the legacy branch?** See the `glibc-legacy` branch (same approach,
+older version).
+
+---
 
 ## Dependencies
 
-**Required at runtime:**
-
-| Package | Why |
-|---------|-----|
-| `glibc` | OpenCode binary is glibc-linked; bun-termux-loader loads it via glibc's ld.so |
-| `openssl-glibc` | HTTPS/TLS for API calls |
+| Package | Required? | Why |
+|---------|-----------|-----|
+| `glibc` | ✅ Yes | OpenCode binary is glibc-linked; wrapper loads it via glibc's ld.so |
+| `openssl-glibc` | ✅ Yes | HTTPS/TLS for API calls |
+| `bash` | ✅ Yes | Launcher script |
+| `ncurses` | ✅ Yes | TUI support |
 
 ```bash
-# Install dependencies (Termux apt)
+# Install dependencies
 apt install -y glibc-repo
 apt update
 apt install -y glibc openssl-glibc
@@ -21,104 +29,200 @@ apt install -y glibc openssl-glibc
 apt install -y /path/to/opencode_<version>_aarch64.deb
 ```
 
-**Optional (separate package):**
+### Optional: Android-native Bun
 
-| Package | Repo | Provides |
-|---------|------|----------|
-| `bun` (Android-native) | `Hope2333/bun-termux` | JS runtime (0 glibc) |
+```bash
+# From the bun-termux repo (pure-android branch)
+# Provides: bun -- JavaScript runtime, 0 glibc
+# Repo: https://github.com/Hope2333/bun-termux
+```
 
 ---
 
-## What this is
+## What this branch provides
 
-This package ships the **real OpenCode AI coding assistant**, compiled from
-upstream source via `bun build --compile`, then wrapped for Android/Bionic
-using bun-termux-loader. It runs on Termux via glibc's dynamic linker.
-
-```
-opencode --version  →  1.15.7  (real OpenCode)
-```
+- ✅ **Real OpenCode AI** (`opencode --version` → `1.15.x`)
+- ✅ deb + pacman package output
+- ✅ Plugin lifecycle system (install/update/rollback)
+- ✅ TTY/signal cleanup launcher
+- ✅ System-skill hooks (post-install/upgrade/remove)
+- ✅ CI workflow for automated builds
+- ✅ Batch build (`make batch VERS='1.15.[1-7]'`)
+- ✅ Release upload automation (`make release-upload`)
 
 ---
 
 ## How it works
 
+The upstream OpenCode binary (`opencode-linux-arm64` from npm) is a
+**glibc-linked Bun-compiled application**. It contains the Bun runtime +
+OpenCode JS code compiled into a single ELF executable.
+
+To make it run on Android/Bionic, **bun-termux-loader** prepends a thin
+Bionic wrapper:
+
 ```
-[opencode command]
-       ↓
-  bun-termux-loader wrapper (Bionic ELF)
-       ↓
-  extracts embedded glibc Bun runtime + OpenCode JS
-       ↓
-  userland exec via glibc's ld-linux-aarch64.so.1
-       ↓
-  OpenCode AI runs normally
+┌──────────────────────────────────────────────┐
+│ Bionic wrapper ELF (~12KB)                    │
+│   - Reads /proc/self/exe                      │
+│   - Finds BUNWRAP1 metadata                   │
+│   - Extracts embedded OpenCode binary          │
+│   - Userland exec via glibc's ld.so           │
+├──────────────────────────────────────────────┤
+│ BUNWRAP1 metadata                             │
+├──────────────────────────────────────────────┤
+│ Original opencode binary (glibc Bun + JS)     │
+│   - Interpreter: /lib/ld-linux-aarch64.so.1   │
+│   - Entry: compiled-app mode (RX seg base)    │
+│   - ---- Bun! ---- marker + JS bytecode       │
+└──────────────────────────────────────────────┘
 ```
 
-The wrapper binary is an aarch64 Bionic PIE that uses **userland exec**
-(mmap + jump, not execve) to load glibc's dynamic linker and the embedded
-OpenCode runtime, keeping `/proc/self/exe` pointing to the wrapper so Bun
-can find its embedded JavaScript.
+**Userland exec**: Instead of `execve()` (which would update `/proc/self/exe`
+and break Bun's JS location), the wrapper mmap()s glibc's `ld.so` and jumps
+to its entry point, keeping `/proc/self/exe` pointing to itself.
 
 ---
 
-## Constraints (why not zero-glibc yet)
+## Constraints (zero-glibc attempts)
 
-### We tried
+We invested significant research into removing the glibc dependency.
+Here's what we tried and why it didn't work:
 
-| Approach | Result |
-|----------|--------|
-| **Android-native Bun** (v1.3.14 Bionic binary) | ✅ `bun run` works, ❌ `bun build --compile` fails (`/data/` permission) |
-| **JS bundle** (`bun build --target=bun`) | ❌ Native modules (`@opentui/solid`) prevent clean bundling |
-| **Binary surgery** (swap glibc Bun → Android Bun) | ❌ Android Bun lacks compiled-app entry point code |
-| **Fork Bun + add Android compile target** | ⏳ Long-term, requires Zig/C++ changes to Bun |
+| Approach | Result | Root Cause |
+|----------|--------|------------|
+| **Android Bun as runtime** (v1.3.14 Bionic binary) | ❌ | `bun build --compile` fails on Termux (`/data/` permission) |
+| **JS bundle from source** (`bun build --target=bun`) | ❌ | Native modules (`@opentui/solid`) require `--compile` |
+| **Runtime swap** (replace glibc Bun with Android Bun) | ❌ | Android Bun lacks compiled-app entry point code (ELF entry at 0x1f00200, not segment base) |
+| **Binary surgery** (patch ELF entry + swap) | ❌ | Missing Zig/C++ level "load embedded JS" code in Android Bun |
+| **Fork Bun + add android target** | ⏳ | Requires modifying Bun's Zig/C++ build system + WebKit |
 
-### Current path
+**Current path**: bun-termux-loader wrapping. Production-stable, works today.
+The glibc dependency is standard on Termux (`apt install glibc`).
 
-**bun-termux-loader wrapping** — proven, production-stable. The wrapped binary
-includes both the glibc runtime linker and the OpenCode application code in a
-single Bionic-friendly package. glibc is required at runtime but is a standard
-Termux package (`apt install glibc`).
+**Future**: When upstream Bun supports `--target=bun-linux-aarch64-android`,
+we can switch to native Android Bun as the runtime and eliminate glibc.
 
-### Future possibility
+See `docs/native-android-research.md` for full research details.
 
-When upstream Bun supports `--target=bun-linux-aarch64-android`, we can
-switch to native Android Bun as the runtime, eliminating the glibc dependency.
+---
+
+## Install
+
+```bash
+# Path A: apt/pkg (recommended)
+apt install -y glibc-repo
+apt update
+apt install -y glibc openssl-glibc
+apt install -y /path/to/opencode_<version>_aarch64.deb
+
+# Path B: pacman
+pacman -Syu
+pacman -S glibc openssl-glibc
+pacman -U /path/to/opencode-<version>-aarch64.pkg.tar.xz
+```
+
+Releases: https://github.com/Hope2333/opencode-termux/releases
+
+---
+
+## Usage
+
+```bash
+opencode --version          # → 1.15.7
+opencode run "hi"           # OpenCode AI chat
+opencode run --mode=dev .   # development mode
+opencode serve              # API server mode
+opencode web                # web interface
+```
 
 ---
 
 ## Build
 
+### Local build (Termux)
+
 ```bash
-# Build one version
+# Single version
 make all VER=1.15.7 PKG=both
 
-# Batch build multiple versions
-make batch VERS='1.15.[1-7]' PKG=both
+# Batch build (1.15.1 through 1.15.7)
+make batch VERS='1.15.[1-7]' PKG=both ODIR=~/oct-out MIX=1
+```
 
-# Build + upload to release
+### Build + release upload
+
+```bash
+# Hidden target (not in help):
 make release-upload TAG=Push260522 VERS='1.15.[1-7]'
+# Defaults: TAG=Push<YYMMDD>, REPO=Hope2333/opencode-termux, PKG=both
+```
+
+### Build flow
+
+```
+make all VER=1.15.7 PKG=both
+  → clean (rm -rf artifacts/staged, packaging work dirs)
+  → runtime (tools/produce-local.sh: npm download + bun-termux-loader wrap)
+  → stage (scripts/build.sh: copy to prefix tree)
+  → deb (scripts/package/package_deb.sh)
+  → pacman (scripts/package/package_pacman.sh)
 ```
 
 ---
 
-## Repository
+## CI Pipeline
+
+Workflow: `.github/workflows/build-pure-android.yml`
 
 ```
-tools/
-  produce-local.sh         Download from npm + wrap
-  prebuilt/                Pre-built wrapper + shim for CI
-scripts/
-  build.sh                 Stage prefix
-  launcher.sh              Runtime dispatcher
-  package/package_deb.sh   DEB builder
-  package/package_pacman.sh  Pacman builder
-patches/                   Upstream OpenCode patches (WIP)
+workflow_dispatch (manual, with version input)
+  ↓ Install Bun (Linux) for optional bundle build
+  ↓ Clone upstream source + apply patches (WIP)
+  ↓ QEMU aarch64 emulation for binary handling
+  ↓ Download opencode-linux-arm64 from npm
+  ↓ Wrap with bun-termux-loader (pre-built aarch64 wrapper+shim)
+  ↓ Create bundle + upload artifact + write status JSON
 ```
+
+Matrix builds for: `aarch64`, `x64`
+
+---
+
+## Repository layout
+
+```
+.github/workflows/
+  build-pure-android.yml      CI automated build pipeline
+tools/
+  produce-local.sh            Download from npm + wrap
+  prebuilt/                   Pre-built aarch64 wrapper+shim for CI
+scripts/
+  build.sh                    Stage prefix
+  launcher.sh                 Runtime dispatcher (cleanup + exec)
+  package/package_deb.sh      DEB builder
+  package/package_pacman.sh   Pacman builder
+  hooks/run-system-skills.sh  Post-install/upgrade hooks
+patches/
+  0001-android-support.patch   Upstream OpenCode Android patches (WIP)
+docs/
+  native-android-research.md  Research: zero-glibc approaches
+```
+
+## Launcher safeguards
+
+- TTY cleanup on exit (soft/hard depending on exit code)
+- Stale lock cleanup (`*.lock` in `$XDG_STATE_HOME`)
+- `OPENCODE_DISABLE_DEFAULT_PLUGINS=1` (default)
+
+## Metadata
+
+Maintainer: `Hope2333(幽零小喵) <u0catmiao@proton.me>`
 
 ## Related
 
 - OpenCode upstream: <https://github.com/anomalyco/opencode>
 - bun-termux-loader: <https://github.com/Hope2333/bun-termux-loader>
 - Android-native Bun: <https://github.com/Hope2333/bun-termux> (pure-android branch)
-- Upstream Bun: <https://github.com/oven-sh/bun>
+- Upstream Bun (Android builds): <https://github.com/oven-sh/bun>
+- Research doc: `docs/native-android-research.md`
