@@ -44,7 +44,7 @@ if [[ -f "$BUNDLE_INPUT" ]]; then
 	log "installed JS bundle"
 fi
 
-install -m 755 "$ROOT_DIR/scripts/launcher.sh" "$PREFIX_DIR/bin/mimocode"
+install -m 755 "$ROOT_DIR/scripts/launcher.sh" "$PREFIX_DIR/bin/mimo"
 if [[ -f "$ROOT_DIR/tools/plugin-manager.sh" ]]; then
 	install -m 755 "$ROOT_DIR/tools/plugin-manager.sh" "$PREFIX_DIR/lib/mimocode/tools/plugin-manager.sh"
 fi

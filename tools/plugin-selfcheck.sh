@@ -22,9 +22,9 @@ print_check() {
 }
 
 main() {
-	print_check "mimocode.bin" "info" "$(command -v mimocode || echo missing)"
-	if command -v mimocode >/dev/null 2>&1; then
-		print_check "mimocode.version" "info" "$(mimocode --version 2>/dev/null || echo unknown)"
+	print_check "mimo.bin" "info" "$(command -v mimo || echo missing)"
+	if command -v mimo >/dev/null 2>&1; then
+		print_check "mimo.version" "info" "$(mimo --version 2>/dev/null || echo unknown)"
 	fi
 
 	if [[ -f "$CFG_FILE" ]]; then

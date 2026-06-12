@@ -11,7 +11,7 @@ command -v dpkg-deb >/dev/null 2>&1 || {
 	echo "Error: dpkg-deb not found"
 	exit 1
 }
-[[ -x "$STAGED_PREFIX/bin/mimocode" ]] || {
+[[ -x "$STAGED_PREFIX/bin/mimo" ]] || {
 	echo "Error: missing staged launcher"
 	exit 1
 }
@@ -48,7 +48,7 @@ cat >"$DEB_ROOT/DEBIAN/postinst" <<'POSTINST'
 #!/data/data/com.termux/files/usr/bin/bash
 set -e
 echo "MiMoCode for Termux installed"
-echo "Run: mimocode --version"
+echo "Run: mimo --version"
 echo "Runtime: glibc (bun-termux-loader wrapped)"
 HOOK_RUNNER="/data/data/com.termux/files/usr/lib/mimocode/tools/run-system-skills.sh"
 if [[ -x "$HOOK_RUNNER" ]]; then

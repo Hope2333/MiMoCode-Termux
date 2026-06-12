@@ -99,14 +99,14 @@ first_name="${remote_names[0]}"
 last_name="${remote_names[${#remote_names[@]} - 1]}"
 logfile="$TARGET_HOME/${PKG_NAME}-upgrade-matrix-$(date +%Y%m%d-%H%M%S).log"
 
-ssh_exec "set -euo pipefail; dpkg --audit >/dev/null 2>&1 || true; apt -f install -y >/dev/null 2>&1 || true; exec > >(tee -a $logfile) 2>&1; echo LOG=$logfile; echo === baseline install ===; apt install -y $first_name; $PKG_NAME --version || true"
+ssh_exec "set -euo pipefail; dpkg --audit >/dev/null 2>&1 || true; apt -f install -y >/dev/null 2>&1 || true; exec > >(tee -a $logfile) 2>&1; echo LOG=$logfile; echo === baseline install ===; apt install -y $first_name; mimo --version || true"
 ssh_exec "set -euo pipefail; hr=/data/data/com.termux/files/usr/lib/mimocode/tools/run-system-skills.sh; if [[ -x \"\$hr\" ]]; then MIMOCODE_HOOK_STRICT=0 MIMOCODE_HOOK_ENABLE_NETWORK=0 \"\$hr\" post_install || true; fi"
 
 for n in "${remote_names[@]}"; do
-	ssh_exec "set -euo pipefail; echo === upgrade/install $(basename "$n") ===; apt install -y $n; $PKG_NAME --version || true; $PKG_NAME run hi >/dev/null 2>&1 || true"
+	ssh_exec "set -euo pipefail; echo === upgrade/install $(basename "$n") ===; apt install -y $n; mimo --version || true; mimo run hi >/dev/null 2>&1 || true"
 	ssh_exec "set -euo pipefail; hr=/data/data/com.termux/files/usr/lib/mimocode/tools/run-system-skills.sh; if [[ -x \"\$hr\" ]]; then MIMOCODE_HOOK_STRICT=0 MIMOCODE_HOOK_ENABLE_NETWORK=0 \"\$hr\" post_upgrade || true; fi"
 done
 
-ssh_exec "set -euo pipefail; echo === downgrade latest to first ===; apt install -y $first_name; $PKG_NAME --version || true; echo === reinstall latest ===; apt install -y --reinstall $last_name; $PKG_NAME --version || true; echo === final state ===; dpkg -l | grep -E '^(ii|hi)\\s+($PKG_NAME|glibc|openssl-glibc|glibc-runner)' || true; echo MATRIX_DONE"
+ssh_exec "set -euo pipefail; echo === downgrade latest to first ===; apt install -y $first_name; mimo --version || true; echo === reinstall latest ===; apt install -y --reinstall $last_name; mimo --version || true; echo === final state ===; dpkg -l | grep -E '^(ii|hi)\\s+($PKG_NAME|glibc|openssl-glibc|glibc-runner)' || true; echo MATRIX_DONE"
 
 log "matrix complete; remote log: $logfile"

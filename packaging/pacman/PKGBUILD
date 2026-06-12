@@ -20,8 +20,8 @@ prepare() {
     error "missing runtime at ${_staged_prefix}/lib/mimocode/runtime/mimocode"
     return 1
   }
-  [[ -x "${_staged_prefix}/bin/mimocode" ]] || {
-    error "missing launcher at ${_staged_prefix}/bin/mimocode"
+  [[ -x "${_staged_prefix}/bin/mimo" ]] || {
+    error "missing launcher at ${_staged_prefix}/bin/mimo"
     return 1
   }
 }
@@ -37,7 +37,7 @@ package() {
 
 post_install() {
   echo "MiMoCode for Termux installed"
-  echo "Run: mimocode --version"
+  echo "Run: mimo --version"
   local hook_runner="${PREFIX:-/data/data/com.termux/files/usr}/lib/mimocode/tools/run-system-skills.sh"
   if [[ -x "$hook_runner" ]]; then
     OPENCODE_HOOK_STRICT=0 OPENCODE_HOOK_ENABLE_NETWORK=0 "$hook_runner" post_install || true

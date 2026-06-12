@@ -39,7 +39,7 @@ run_or_warn() {
 
 core_version() {
 	local ver
-	ver="$(mimocode --version 2>/dev/null || true)"
+	ver="$(mimo --version 2>/dev/null || true)"
 	if [[ -z "$ver" && -x "$PREFIX/lib/mimocode/runtime/mimocode" ]]; then
 		ver="$($PREFIX/lib/mimocode/runtime/mimocode --version 2>/dev/null || true)"
 	fi

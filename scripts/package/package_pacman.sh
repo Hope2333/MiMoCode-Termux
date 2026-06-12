@@ -10,7 +10,7 @@ PKGREL="${PKGREL:-1}"
 	echo "Error: missing MiMoCode runtime"
 	exit 1
 }
-[[ -x "$STAGED_PREFIX/bin/mimocode" ]] || {
+[[ -x "$STAGED_PREFIX/bin/mimo" ]] || {
 	echo "Error: missing staged launcher"
 	exit 1
 }
