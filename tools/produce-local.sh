@@ -39,20 +39,26 @@ if [[ -f "$CACHE_BIN" ]]; then
 	exit 0
 fi
 
-# Download from GitHub releases
-need curl
+# Download from GitHub releases (wget with resume, fallback curl)
 cd "$EXTRACT"
 TGZ="mimocode-linux-arm64.tar.gz"
 URL="https://github.com/$MIMOCODE_REPO/releases/download/v${VER}/${TGZ}"
 log "downloading $TGZ from GitHub releases (v$VER)"
-curl -fL "$URL" -o "$TGZ" 2>&1 || die "download failed: $URL"
-tar -xzf "$TGZ" 2>/dev/null
-RAW="./mimocode"
-if [[ ! -f "$RAW" ]]; then
-	# Try searching in subdirectories
-	RAW="$(find . -name "mimocode" -type f 2>/dev/null | head -1)" || true
+if command -v wget >/dev/null 2>&1; then
+	wget -c "$URL" -O "$TGZ" 2>&1 || die "download failed: $URL"
+else
+	need curl
+	curl -fL "$URL" -o "$TGZ" 2>&1 || die "download failed: $URL"
 fi
-[[ -f "$RAW" && -x "$RAW" ]] || { chmod +x "$RAW" 2>/dev/null; [[ -x "$RAW" ]] || die "mimocode binary not found in tarball"; }
+tar -xzf "$TGZ" 2>/dev/null
+# The binary inside the tarball is named "mimo" (or "mimocode" in future releases)
+RAW="$(find . -type f \( -name "mimo" -o -name "mimocode" \) ! -name "*.tar.gz" 2>/dev/null | head -1)" || true
+if [[ -z "$RAW" || ! -f "$RAW" ]]; then
+	RAW="./mimo"
+	[[ -f "$RAW" ]] || RAW="./mimocode"
+fi
+[[ -f "$RAW" ]] || die "binary not found in tarball (looked for mimo/mimocode)"
+chmod +x "$RAW" 2>/dev/null || true
 
 log "raw binary: $(file "$RAW" | cut -d: -f2)"
 
