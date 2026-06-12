@@ -137,8 +137,8 @@ pacman:
 
 status:
 	@echo "Staged runtime:"; \
-	if [ -x artifacts/staged/prefix/lib/mimocode/runtime/opencode ]; then \
-		artifacts/staged/prefix/lib/mimocode/runtime/opencode --version; \
+	if [ -x artifacts/staged/prefix/lib/mimocode/runtime/mimocode ]; then \
+		artifacts/staged/prefix/lib/mimocode/runtime/mimocode --version; \
 	else \
 		echo "<missing>"; \
 	fi

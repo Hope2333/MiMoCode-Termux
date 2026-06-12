@@ -17,8 +17,8 @@ command -v dpkg-deb >/dev/null 2>&1 || {
 }
 
 # Version: use explicit VERSION if set, else read from Android Bun
-if [[ -z "${VERSION:-}" && -x "$STAGED_PREFIX/lib/mimocode/runtime/opencode" ]]; then
-	VERSION="$($STAGED_PREFIX/lib/mimocode/runtime/opencode --version 2>/dev/null || true)"
+if [[ -z "${VERSION:-}" && -x "$STAGED_PREFIX/lib/mimocode/runtime/mimocode" ]]; then
+	VERSION="$($STAGED_PREFIX/lib/mimocode/runtime/mimocode --version 2>/dev/null || true)"
 fi
 : "${VERSION:=0.0.0}"
 DEB_ROOT="$ROOT_DIR/packaging/dpkg/work"

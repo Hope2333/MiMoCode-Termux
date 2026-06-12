@@ -6,7 +6,7 @@ STAGED_PREFIX="${STAGED_PREFIX:-$ROOT_DIR/artifacts/staged/prefix}"
 PACKAGER_NAME="${PACKAGER_NAME:-Hope2333(幽零小喵) <u0catmiao@proton.me>}"
 PKGREL="${PKGREL:-1}"
 
-[[ -x "$STAGED_PREFIX/lib/mimocode/runtime/opencode" ]] || {
+[[ -x "$STAGED_PREFIX/lib/mimocode/runtime/mimocode" ]] || {
 	echo "Error: missing MiMoCode runtime"
 	exit 1
 }
@@ -16,8 +16,8 @@ PKGREL="${PKGREL:-1}"
 }
 
 # Version: use explicit VERSION if set, else read from runtime
-if [[ -z "${VERSION:-}" && -x "$STAGED_PREFIX/lib/mimocode/runtime/opencode" ]]; then
-	VERSION="$($STAGED_PREFIX/lib/mimocode/runtime/opencode --version 2>/dev/null || true)"
+if [[ -z "${VERSION:-}" && -x "$STAGED_PREFIX/lib/mimocode/runtime/mimocode" ]]; then
+	VERSION="$($STAGED_PREFIX/lib/mimocode/runtime/mimocode --version 2>/dev/null || true)"
 fi
 [[ -n "$VERSION" ]] || {
 	echo "Error: unable to determine version"

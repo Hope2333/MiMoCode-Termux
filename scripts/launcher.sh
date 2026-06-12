@@ -3,7 +3,7 @@
 set -euo pipefail
 
 SELF_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-MIMOCODE_RUNTIME="$SELF_DIR/../lib/mimocode/runtime/opencode"
+MIMOCODE_RUNTIME="$SELF_DIR/../lib/mimocode/runtime/mimocode"
 
 cleanup_tty_full() {
 	if [ -t 1 ]; then

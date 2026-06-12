@@ -52,8 +52,8 @@ validate_deb_payload() {
 	local listing
 	listing="$(dpkg-deb -c "$deb_file" 2>/dev/null || true)"
 	[[ -n "$listing" ]] || die "cannot read deb payload: $deb_file"
-	if ! printf '%s\n' "$listing" | grep -q '/usr/lib/mimocode/runtime/opencode$'; then
-		die "invalid deb payload (missing /usr/lib/mimocode/runtime/opencode): $deb_file"
+	if ! printf '%s\n' "$listing" | grep -q '/usr/lib/mimocode/runtime/mimocode$'; then
+		die "invalid deb payload (missing /usr/lib/mimocode/runtime/mimocode): $deb_file"
 	fi
 }
 

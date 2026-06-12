@@ -28,9 +28,9 @@ else
 	log "source tree not found; continuing runtime-only staging"
 fi
 
-# Install wrapped MiMoCode runtime (the real OpenCode app wrapped for Termux)
+# Install wrapped MiMoCode runtime
 if [[ -f "$RUNTIME_INPUT" ]]; then
-	install -m 755 "$RUNTIME_INPUT" "$PREFIX_DIR/lib/mimocode/runtime/opencode"
+	install -m 755 "$RUNTIME_INPUT" "$PREFIX_DIR/lib/mimocode/runtime/mimocode"
 	log "installed MiMoCode runtime binary"
 	RUNTIME_MODE="mimocode-wrapped"
 else
@@ -81,6 +81,6 @@ write_build_meta "$ROOT_DIR/artifacts/mimocode/build.meta" \
 	"component=mimocode" \
 	"prefix=$PREFIX_DIR" \
 	"runtime_mode=android-only" \
-	"runtime_path=$PREFIX_DIR/lib/mimocode/runtime/opencode"
+	"runtime_path=$PREFIX_DIR/lib/mimocode/runtime/mimocode"
 
 log "staged build ready: $PREFIX_DIR"
