@@ -1,4 +1,4 @@
-# OpenCode for Termux - local build orchestrator
+# MiMoCode for Termux - local build orchestrator
 
 SHELL := /data/data/com.termux/files/usr/bin/bash
 .DEFAULT_GOAL := help
@@ -13,14 +13,14 @@ MIX ?= 0
 
 # Release upload target variables
 TAG ?= Push$(shell date +%y%m%d)
-REPO ?= Hope2333/opencode-termux
+REPO ?= Hope2333/MiMoCode-Termux
 
 OUTPUT_ROOT := $(if $(ODIR),$(ODIR),$(CURDIR)/packing)
 
 .PHONY: help all runtime stage deb pacman batch clean status steps matrix selfcheck release-upload
 
 help:
-	@echo "OpenCode Termux build helper"
+	@echo "MiMoCode Termux build helper"
 	@echo
 	@echo "Mainline scope:"
 	@echo "  - Local Termux packaging workflow (deb + pacman)"
@@ -64,12 +64,11 @@ help:
 	@echo "  make selfcheck"
 	@echo "  make matrix VERS='1.2.9 1.2.10' ODIR=~/oct-out"
 	@echo
-	@echo "Wrapper CLI (tools/make-opencode):"
-	@echo "  ./tools/make-opencode --all --ver 1.2.10 --pkg both"
-	@echo "  ./tools/make-opencode --all --ver latest --pkg pacman"
-	@echo "  ./tools/make-opencode --batch --vers '1.2.10 1.2.11' --pkg pacman"
-	@echo "  ./tools/make-opencode --batch --vers '1.1.[1-20]' --pkg both --odir ~/oct-out"
-	@echo "  ./tools/make-opencode --all --ver 1.2.10 --pkg both --odir ~/oct-out --mix"
+  @echo "Wrapper CLI (tools/make-mimocode):"
+	@echo "  ./tools/make-mimocode --all --ver 1.17.3 --pkg both"
+	@echo "  ./tools/make-mimocode --all --ver latest --pkg pacman"
+	@echo "  ./tools/make-mimocode --batch --vers '1.17.[0-3]' --pkg both --odir ~/mc-out"
+	@echo "  ./tools/make-mimocode --all --ver 1.17.3 --pkg both --odir ~/mc-out --mix"
 	@echo "  TARGET_HOST=192.168.1.22 TARGET_USER=u0_a258 ./tools/upgrade-matrix.sh"
 
 steps:
@@ -122,24 +121,24 @@ deb:
 	rm -rf packaging/dpkg/work
 	MAINTAINER='$(PACKAGER_NAME)' ./scripts/package/package_deb.sh
 	@if [ "$(MIX)" = "1" ]; then \
-		mkdir -p "$(OUTPUT_ROOT)" && cp -f packaging/dpkg/opencode_*.deb "$(OUTPUT_ROOT)/" 2>/dev/null || true; \
+		mkdir -p "$(OUTPUT_ROOT)" && cp -f packaging/dpkg/mimocode_*.deb "$(OUTPUT_ROOT)/" 2>/dev/null || true; \
 	else \
-		mkdir -p "$(OUTPUT_ROOT)/deb" && cp -f packaging/dpkg/opencode_*.deb "$(OUTPUT_ROOT)/deb/" 2>/dev/null || true; \
+		mkdir -p "$(OUTPUT_ROOT)/deb" && cp -f packaging/dpkg/mimocode_*.deb "$(OUTPUT_ROOT)/deb/" 2>/dev/null || true; \
 	fi
 
 pacman:
 	rm -rf packaging/pacman/pkg packaging/pacman/src
 	PACKAGER_NAME='$(PACKAGER_NAME)' ./scripts/package/package_pacman.sh
 	@if [ "$(MIX)" = "1" ]; then \
-		mkdir -p "$(OUTPUT_ROOT)" && cp -f packaging/pacman/opencode-*.pkg.* "$(OUTPUT_ROOT)/" 2>/dev/null || true; \
+		mkdir -p "$(OUTPUT_ROOT)" && cp -f packaging/pacman/mimocode-*.pkg.* "$(OUTPUT_ROOT)/" 2>/dev/null || true; \
 	else \
-		mkdir -p "$(OUTPUT_ROOT)/pacman" && cp -f packaging/pacman/opencode-*.pkg.* "$(OUTPUT_ROOT)/pacman/" 2>/dev/null || true; \
+		mkdir -p "$(OUTPUT_ROOT)/pacman" && cp -f packaging/pacman/mimocode-*.pkg.* "$(OUTPUT_ROOT)/pacman/" 2>/dev/null || true; \
 	fi
 
 status:
 	@echo "Staged runtime:"; \
-	if [ -x artifacts/staged/prefix/lib/opencode/runtime/opencode ]; then \
-		artifacts/staged/prefix/lib/opencode/runtime/opencode --version; \
+	if [ -x artifacts/staged/prefix/lib/mimocode/runtime/opencode ]; then \
+		artifacts/staged/prefix/lib/mimocode/runtime/opencode --version; \
 	else \
 		echo "<missing>"; \
 	fi
@@ -157,28 +156,28 @@ clean:
 # ── Release upload (not shown in help) ──────────────────────────────────
 # Automates: batch build → upload all assets to existing or new release tag.
 # Usage:
-#   make release-upload TAG=Push260522 VERS='1.15.[1-7]'
-#   make release-upload TAG=Push260522 VERS='1.15.[1-7]' PKG=deb
-#   make release-upload VERS='1.2.[10-20]' REPO=Hope2333/opencode-termux
+#   make release-upload TAG=Push260611 VERS='1.17.[0-3]'
+#   make release-upload TAG=Push260611 VERS='1.17.[0-3]' PKG=deb
+#   make release-upload VERS='1.2.[10-20]' REPO=Hope2333/MiMoCode-Termux
 #
 # Defaults:
 #   TAG     = Push<YYMMDD> (auto-generated)
 #   VERS    = (required)
 #   PKG     = both
-#   REPO    = Hope2333/opencode-termux
+#   REPO    = Hope2333/MiMoCode-Termux
 release-upload:
 	@if [ -z "$(VERS)" ]; then \
-		echo "Error: VERS is required. Example: make release-upload VERS='1.15.[1-7]' TAG=Push260522"; \
+		echo "Error: VERS is required. Example: make release-upload VERS='1.17.[0-3]' TAG=Push260611"; \
 		exit 1; \
 	fi
 	@echo "=== Release upload: TAG=$(TAG) VERS=$(VERS) PKG=$(PKG) REPO=$(REPO) ==="
-	$(MAKE) batch VERS='$(VERS)' PKG='$(PKG)' ODIR='/tmp/oc-release-$(TAG)' MIX=1
+	$(MAKE) batch VERS='$(VERS)' PKG='$(PKG)' ODIR='/tmp/mc-release-$(TAG)' MIX=1
 	@echo "=== Uploading to release $(TAG) ==="; \
 	if ! gh release view "$(TAG)" --repo "$(REPO)" >/dev/null 2>&1; then \
 		echo "Creating release $(TAG)..."; \
 		gh release create "$(TAG)" --repo "$(REPO)" --title "$(TAG)" --notes "Automated build $$(date -u +%Y-%m-%d)" 2>&1 || exit 1; \
 	fi; \
-	for f in /tmp/oc-release-$(TAG)/opencode_*.deb /tmp/oc-release-$(TAG)/opencode-*.pkg.*; do \
+	for f in /tmp/mc-release-$(TAG)/mimocode_*.deb /tmp/mc-release-$(TAG)/mimocode-*.pkg.*; do \
 		if [ -f "$$f" ]; then \
 			echo "  uploading $$(basename $$f)..."; \
 			gh release upload "$(TAG)" "$$f" --repo "$(REPO)" --clobber 2>&1 || true; \

@@ -1,11 +1,11 @@
 #!/data/data/com.termux/files/usr/bin/bash
-# tools/produce-local.sh — Build OpenCode for Termux
-# Downloads from npm + wraps with bun-termux-loader
+# tools/produce-local.sh — Build MiMoCode for Termux
+# Downloads opencode-linux-arm64 from npm + wraps with bun-termux-loader
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-RUNTIME_DIR="$ROOT_DIR/artifacts/opencode/runtime"
-OPENCODE_OUT="$RUNTIME_DIR/opencode-termux"
+RUNTIME_DIR="$ROOT_DIR/artifacts/mimocode/runtime"
+MIMOCODE_OUT="$RUNTIME_DIR/mimocode-termux"
 INPUT_VER="${1:-}"
 
 log() { printf '[produce] %s\n' "$*"; }
@@ -16,20 +16,20 @@ need() { command -v "$1" >/dev/null 2>&1 || die "missing: $1"; }
 [[ -n "$INPUT_VER" ]] || die "no version specified"
 VER="$INPUT_VER"
 
-CACHE_DIR="${CACHE_DIR:-$HOME/.cache/opencode-termux}"
+CACHE_DIR="${CACHE_DIR:-$HOME/.cache/mimocode-termux}"
 LOADER_DIR="/data/data/com.termux/files/home/bun-termux-loader"
 EXTRACT="${TMPDIR:-$PREFIX/tmp}/produce-$$"
 mkdir -p "$RUNTIME_DIR" "$CACHE_DIR" "$EXTRACT"
 trap 'rm -rf $EXTRACT' EXIT
 
-log "opencode v$VER"
+log "mimocode v$VER"
 
 # Check cache
-CACHE_BIN="$CACHE_DIR/opencode-$VER"
+CACHE_BIN="$CACHE_DIR/mimocode-$VER"
 if [[ -f "$CACHE_BIN" ]]; then
 	log "cache hit"
-	install -m 755 "$CACHE_BIN" "$OPENCODE_OUT"
-	"$OPENCODE_OUT" --version 2>/dev/null || true
+	install -m 755 "$CACHE_BIN" "$MIMOCODE_OUT"
+	"$MIMOCODE_OUT" --version 2>/dev/null || true
 	rm -rf "$ROOT_DIR/artifacts/staged" "$ROOT_DIR/packaging/dpkg/work" "$ROOT_DIR/packaging/pacman/src"
 	log "DONE"
 	exit 0
@@ -56,10 +56,10 @@ python3 "$LOADER_DIR/build.py" "$RAW" --wrapper "$LOADER_DIR/wrapper" --shim "$L
 WRAPPED="${RAW}-termux"
 [[ -f "$WRAPPED" ]] || die "wrapping failed"
 
-install -m 755 "$WRAPPED" "$OPENCODE_OUT"
+install -m 755 "$WRAPPED" "$MIMOCODE_OUT"
 install -m 755 "$WRAPPED" "$CACHE_BIN"
-log "done: $(file "$OPENCODE_OUT" | cut -d: -f2)"
-log "version: $("$OPENCODE_OUT" --version 2>/dev/null || echo '?')"
+log "done: $(file "$MIMOCODE_OUT" | cut -d: -f2)"
+log "version: $("$MIMOCODE_OUT" --version 2>/dev/null || echo '?')"
 
 rm -rf "$ROOT_DIR/artifacts/staged" "$ROOT_DIR/packaging/dpkg/work" "$ROOT_DIR/packaging/pacman/src"
 log "DONE"

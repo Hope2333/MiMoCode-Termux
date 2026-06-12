@@ -1,15 +1,15 @@
 # PROJECT KNOWLEDGE BASE
 
-**Generated:** 2026-03-05T13:10:53Z  
-**Commit:** 1b92c1e  
-**Branch:** main
+**Generated:** 2026-06-11
+**Commit:** current
+**Branch:** pure-android
 
 ## OVERVIEW
-Termux-first OpenCode build/packaging workspace. Mainline release path is local Termux build (`tools/produce-local.sh` + `scripts/*`), while GitHub Actions armv7 workflow is diagnostic/handoff, not final runtime release.
+Termux-first MiMoCode build/packaging workspace. Mainline release path is local Termux build (`tools/produce-local.sh` + `scripts/*`), while GitHub Actions armv7 workflow is diagnostic/handoff, not final runtime release.
 
 ## STRUCTURE
 ```text
-opencode-termux/
+mimocode-termux/
 ├── Makefile                    # top-level orchestration (all/batch/selfcheck/matrix)
 ├── scripts/                    # staging, packaging, hook runners, CI helper scripts
 ├── tools/                      # operator-facing CLIs (make wrapper, plugin lifecycle, matrix)
@@ -22,7 +22,7 @@ opencode-termux/
 ## WHERE TO LOOK
 | Task | Location | Notes |
 |---|---|---|
-| Build orchestration | `Makefile`, `tools/make-opencode` | `make` is source of truth; wrapper maps CLI flags to make vars |
+| Build orchestration | `Makefile`, `tools/make-mimocode` | `make` is source of truth; wrapper maps CLI flags to make vars |
 | Prepare runtime artifact | `tools/produce-local.sh` | resolves version, wraps runtime, cleans stale generated dirs |
 | Stage install tree | `scripts/build.sh`, `scripts/common.sh` | writes staged prefix + build metadata |
 | Build DEB package | `scripts/package/package_deb.sh`, `packaging/deb/DEBIAN/control` | postinst hook calls system-skill runner |
@@ -45,7 +45,7 @@ opencode-termux/
 ## CONVENTIONS
 - Shell scripts use strict mode (`set -euo pipefail`) and fail-fast checks for required binaries/files.
 - Runtime/package scripts rely on uppercase env knobs (`VER`, `VERS`, `PKG`, `ODIR`, `MIX`, `STAGED_PREFIX`, `PACKAGER_NAME`).
-- Hook execution is explicit and safe-by-default (`OPENCODE_HOOK_STRICT=0`, `OPENCODE_HOOK_ENABLE_NETWORK=0`) in package lifecycle paths.
+- Hook execution is explicit and safe-by-default (`MIMOCODE_HOOK_STRICT=0`, `MIMOCODE_HOOK_ENABLE_NETWORK=0`) in package lifecycle paths.
 - Packaging sources live under `packaging/*` templates; versioned package files are generated artifacts.
 
 ## ANTI-PATTERNS (THIS PROJECT)
@@ -62,15 +62,15 @@ opencode-termux/
 ## COMMANDS
 ```bash
 # Runtime preparation (mainline local flow)
-./tools/produce-local.sh 1.2.10
+./tools/produce-local.sh 1.17.3
 
 # Build/package via make
-make all VER=1.2.10 PKG=both
-make batch VERS='1.2.10 1.2.11' PKG=deb
+make all VER=1.17.3 PKG=both
+make batch VERS='1.17.0 1.17.1 1.17.2 1.17.3' PKG=deb
 
 # Validation
 make selfcheck
-make matrix VERS='1.2.9 1.2.10' TARGET_HOST=192.168.1.22 TARGET_USER=u0_a258
+make matrix VERS='1.17.0 1.17.3' TARGET_HOST=192.168.1.22 TARGET_USER=u0_a258
 
 # Direct package scripts
 ./scripts/package/package_deb.sh

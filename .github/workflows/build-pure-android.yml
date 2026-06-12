@@ -4,17 +4,17 @@
 # 3. Wrap with bun-termux-loader (pre-built aarch64 wrapper)
 # 4. Package as .deb / .pkg.tar.xz
 
-name: Build OpenCode for Android
+name: Build MiMoCode for Android
 
 on:
   workflow_dispatch:
     inputs:
       opencode_ref:
-        description: "Upstream branch/tag (default: dev)"
+        description: "Upstream OpenCode branch/tag (default: dev)"
         required: false
         default: "dev"
-      opencode_version:
-        description: "Version tag for output (e.g. 1.15.7)"
+      mimocode_version:
+        description: "Version tag for output (e.g. 1.17.3)"
         required: false
         default: ""
 
@@ -121,7 +121,7 @@ jobs:
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: opencode-android-${{ matrix.arch }}
+          name: mimocode-android-${{ matrix.arch }}
           path: out/bundle/
           retention-days: 30
 

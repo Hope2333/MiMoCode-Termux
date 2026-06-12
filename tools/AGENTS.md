@@ -6,7 +6,7 @@
 ## WHERE TO LOOK
 | Task | Location | Notes |
 |---|---|---|
-| Make wrapper UX | `make-opencode` | maps `--all/--batch/--pkg/--mix/...` into make vars |
+| Make wrapper UX | `make-mimocode` | maps `--all/--batch/--pkg/--mix/...` into make vars |
 | Runtime source + wrapping | `produce-local.sh` | npm-first, GitHub fallback, loader wrapping, stale-dir cleanup |
 | Plugin install/update/rollback | `plugin-manager.sh` | snapshot-first mutation model + retry/backoff + state file |
 | Environment/plugin diagnostics | `plugin-selfcheck.sh` | read-only JSON checks for config/plugins/skills |
@@ -27,7 +27,7 @@
 ## COMMANDS
 ```bash
 # make wrapper
-./tools/make-opencode --all --ver 1.2.10 --pkg both
+./tools/make-mimocode --all --ver 1.17.3 --pkg both
 
 # runtime preparation
 ./tools/produce-local.sh 1.2.10

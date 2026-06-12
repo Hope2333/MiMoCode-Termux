@@ -1,6 +1,6 @@
-# opencode-termux Docs (Canonical)
+# MiMoCode-Termux Docs (Canonical)
 
-This directory is the single source of truth for the current Termux packaging/runtime workflow.
+This directory is the single source of truth for the current MiMoCode Termux packaging/runtime workflow.
 
 ## Start here
 
@@ -33,7 +33,7 @@ This directory is the single source of truth for the current Termux packaging/ru
 
 ## Repository map (current)
 
-- OpenCode Termux repo (canonical): `~/develop/opencode-termux`
+- MiMoCode-Termux repo (canonical): `~/develop/MiMoCode-Termux`
 - Workspace root (multi-repo, not single source of truth): `~/develop`
 - Runtime wrapper tool repo: `~/develop/bun-termux` (or legacy `~/bun-termux-loader`, verify active toolchain before release)
 - Runtime config/plugins (user state): `~/.config/opencode/`

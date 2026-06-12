@@ -2,11 +2,11 @@
 set -euo pipefail
 
 log() {
-	printf '[opencode-termux] %s\n' "$*"
+	printf '[mimocode-termux] %s\n' "$*"
 }
 
 fail() {
-	printf '[opencode-termux] ERROR: %s\n' "$*" >&2
+	printf '[mimocode-termux] ERROR: %s\n' "$*" >&2
 	exit 1
 }
 

@@ -16,7 +16,7 @@
 ## CONVENTIONS
 - Keep strict shell mode (`set -euo pipefail`) and explicit command checks (`command -v ...`).
 - Keep staging/package scripts deterministic: validate staged runtime/launcher before packaging.
-- Hook invocations in package lifecycle stay safe-by-default (`OPENCODE_HOOK_STRICT=0`, `OPENCODE_HOOK_ENABLE_NETWORK=0`).
+ - Hook invocations in package lifecycle stay safe-by-default (`MIMOCODE_HOOK_STRICT=0`, `MIMOCODE_HOOK_ENABLE_NETWORK=0`).
 - Shared helpers belong in `common.sh`; avoid duplicating logging/path helpers across scripts.
 
 ## ANTI-PATTERNS (SCRIPTS)
@@ -35,6 +35,6 @@
 ./scripts/package/package_pacman.sh
 
 # manual hook run
-OPENCODE_HOOK_STRICT=0 OPENCODE_HOOK_ENABLE_NETWORK=0 \
+MIMOCODE_HOOK_STRICT=0 MIMOCODE_HOOK_ENABLE_NETWORK=0 \
   ./scripts/hooks/run-system-skills.sh post_install
 ```

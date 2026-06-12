@@ -11,19 +11,19 @@ command -v dpkg-deb >/dev/null 2>&1 || {
 	echo "Error: dpkg-deb not found"
 	exit 1
 }
-[[ -x "$STAGED_PREFIX/bin/opencode" ]] || {
+[[ -x "$STAGED_PREFIX/bin/mimocode" ]] || {
 	echo "Error: missing staged launcher"
 	exit 1
 }
 
 # Version: use explicit VERSION if set, else read from Android Bun
-if [[ -z "${VERSION:-}" && -x "$STAGED_PREFIX/lib/opencode/runtime/bun" ]]; then
-	VERSION="$($STAGED_PREFIX/lib/opencode/runtime/bun --version 2>/dev/null || true)"
+if [[ -z "${VERSION:-}" && -x "$STAGED_PREFIX/lib/mimocode/runtime/opencode" ]]; then
+	VERSION="$($STAGED_PREFIX/lib/mimocode/runtime/opencode --version 2>/dev/null || true)"
 fi
 : "${VERSION:=0.0.0}"
 DEB_ROOT="$ROOT_DIR/packaging/dpkg/work"
 OUT_DIR="$ROOT_DIR/packaging/dpkg"
-OUT_FILE="$OUT_DIR/opencode_${VERSION}_${ARCH_DEB}.deb"
+OUT_FILE="$OUT_DIR/mimocode_${VERSION}_${ARCH_DEB}.deb"
 
 rm -rf "$DEB_ROOT"
 mkdir -p "$DEB_ROOT/DEBIAN" "$DEB_ROOT$PREFIX" "$OUT_DIR"
@@ -31,13 +31,13 @@ chmod 755 "$DEB_ROOT" "$DEB_ROOT/DEBIAN"
 cp -a "$STAGED_PREFIX/." "$DEB_ROOT$PREFIX/"
 
 cat >"$DEB_ROOT/DEBIAN/control" <<EOF
-Package: opencode
+Package: mimocode
 Version: $VERSION
 Architecture: $ARCH_DEB
 Maintainer: $MAINTAINER
 Section: utils
 Priority: optional
-Description: OpenCode AI coding assistant for Termux
+Description: MiMoCode AI coding assistant for Termux
 Depends: bash, ncurses
 EOF
 
@@ -47,10 +47,10 @@ echo "Installed-Size: $INSTALLED_SIZE" >>"$DEB_ROOT/DEBIAN/control"
 cat >"$DEB_ROOT/DEBIAN/postinst" <<'POSTINST'
 #!/data/data/com.termux/files/usr/bin/bash
 set -e
-echo "OpenCode for Termux installed"
-echo "Run: opencode --version"
+echo "MiMoCode for Termux installed"
+echo "Run: mimocode --version"
 echo "Runtime: glibc (bun-termux-loader wrapped)"
-HOOK_RUNNER="/data/data/com.termux/files/usr/lib/opencode/tools/run-system-skills.sh"
+HOOK_RUNNER="/data/data/com.termux/files/usr/lib/mimocode/tools/run-system-skills.sh"
 if [[ -x "$HOOK_RUNNER" ]]; then
   OPENCODE_HOOK_STRICT=0 OPENCODE_HOOK_ENABLE_NETWORK=0 "$HOOK_RUNNER" post_install || true
 fi
@@ -61,7 +61,7 @@ chmod 755 "$DEB_ROOT/DEBIAN/postinst"
 cat >"$DEB_ROOT/DEBIAN/prerm" <<'PRERM'
 #!/data/data/com.termux/files/usr/bin/bash
 set -e
-HOOK_RUNNER="/data/data/com.termux/files/usr/lib/opencode/tools/run-system-skills.sh"
+HOOK_RUNNER="/data/data/com.termux/files/usr/lib/mimocode/tools/run-system-skills.sh"
 if [[ -x "$HOOK_RUNNER" ]]; then
   OPENCODE_HOOK_STRICT=0 OPENCODE_HOOK_ENABLE_NETWORK=0 "$HOOK_RUNNER" pre_remove || true
 fi
@@ -72,7 +72,7 @@ chmod 755 "$DEB_ROOT/DEBIAN/prerm"
 cat >"$DEB_ROOT/DEBIAN/postrm" <<'POSTRM'
 #!/data/data/com.termux/files/usr/bin/bash
 set -e
-HOOK_RUNNER="/data/data/com.termux/files/usr/lib/opencode/tools/run-system-skills.sh"
+HOOK_RUNNER="/data/data/com.termux/files/usr/lib/mimocode/tools/run-system-skills.sh"
 if [[ -x "$HOOK_RUNNER" ]]; then
   OPENCODE_HOOK_STRICT=0 OPENCODE_HOOK_ENABLE_NETWORK=0 "$HOOK_RUNNER" post_remove || true
 fi

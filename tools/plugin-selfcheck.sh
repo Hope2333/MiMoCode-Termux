@@ -5,10 +5,10 @@ CFG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/opencode"
 CFG_FILE="$CFG_DIR/opencode.json"
 OMO_CFG="$CFG_DIR/oh-my-opencode.json"
 LOCAL_PLUGINS="$CFG_DIR/local-plugins"
-SYSTEM_PLUGINS="${PREFIX:-/data/data/com.termux/files/usr}/lib/opencode/plugins"
-SYSTEM_SKILLS="${PREFIX:-/data/data/com.termux/files/usr}/lib/opencode/system-skills"
-SKILL_REGISTRY="${PREFIX:-/data/data/com.termux/files/usr}/share/opencode/system-skills-registry.json"
-SKILL_BLOCKLIST="${PREFIX:-/data/data/com.termux/files/usr}/lib/opencode/system-skills/blocklist.json"
+SYSTEM_PLUGINS="${PREFIX:-/data/data/com.termux/files/usr}/lib/mimocode/plugins"
+SYSTEM_SKILLS="${PREFIX:-/data/data/com.termux/files/usr}/lib/mimocode/system-skills"
+SKILL_REGISTRY="${PREFIX:-/data/data/com.termux/files/usr}/share/mimocode/system-skills-registry.json"
+SKILL_BLOCKLIST="${PREFIX:-/data/data/com.termux/files/usr}/lib/mimocode/system-skills/blocklist.json"
 PM_STATE="$CFG_DIR/plugin-manager-state.json"
 
 json_escape() {
@@ -22,9 +22,9 @@ print_check() {
 }
 
 main() {
-	print_check "opencode.bin" "info" "$(command -v opencode || echo missing)"
-	if command -v opencode >/dev/null 2>&1; then
-		print_check "opencode.version" "info" "$(opencode --version 2>/dev/null || echo unknown)"
+	print_check "mimocode.bin" "info" "$(command -v mimocode || echo missing)"
+	if command -v mimocode >/dev/null 2>&1; then
+		print_check "mimocode.version" "info" "$(mimocode --version 2>/dev/null || echo unknown)"
 	fi
 
 	if [[ -f "$CFG_FILE" ]]; then

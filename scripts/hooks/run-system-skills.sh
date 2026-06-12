@@ -4,15 +4,15 @@ set -euo pipefail
 EVENT="${1:-post_install}"
 PREFIX="${PREFIX:-/data/data/com.termux/files/usr}"
 CFG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/opencode"
-SYS_SKILL_DIR="$PREFIX/lib/opencode/system-skills"
+SYS_SKILL_DIR="$PREFIX/lib/mimocode/system-skills"
 USER_SKILL_DIR="$CFG_DIR/system-skills"
-PLUGIN_MANAGER="$PREFIX/lib/opencode/tools/plugin-manager.sh"
-SELFCHECK="$PREFIX/lib/opencode/tools/plugin-selfcheck.sh"
-HOOK_LOG="${OPENCODE_HOOK_LOG:-$PREFIX/var/log/opencode-hooks.log}"
-STRICT_MODE="${OPENCODE_HOOK_STRICT:-0}"
-ENABLE_NETWORK="${OPENCODE_HOOK_ENABLE_NETWORK:-0}"
-REG_DIR="${OPENCODE_HOOK_STATE_DIR:-$PREFIX/var/lib/opencode/hooks}"
-REGISTRY_FILE="${OPENCODE_HOOK_REGISTRY:-$PREFIX/share/opencode/system-skills-registry.json}"
+PLUGIN_MANAGER="$PREFIX/lib/mimocode/tools/plugin-manager.sh"
+SELFCHECK="$PREFIX/lib/mimocode/tools/plugin-selfcheck.sh"
+HOOK_LOG="${MIMOCODE_HOOK_LOG:-$PREFIX/var/log/mimocode-hooks.log}"
+STRICT_MODE="${MIMOCODE_HOOK_STRICT:-0}"
+ENABLE_NETWORK="${MIMOCODE_HOOK_ENABLE_NETWORK:-0}"
+REG_DIR="${MIMOCODE_HOOK_STATE_DIR:-$PREFIX/var/lib/mimocode/hooks}"
+REGISTRY_FILE="${MIMOCODE_HOOK_REGISTRY:-$PREFIX/share/mimocode/system-skills-registry.json}"
 BLOCKLIST_FILE="${OPENCODE_HOOK_BLOCKLIST:-$SYS_SKILL_DIR/blocklist.json}"
 
 mkdir -p "$(dirname "$HOOK_LOG")" "$REG_DIR" "$(dirname "$REGISTRY_FILE")" 2>/dev/null || true
@@ -20,7 +20,7 @@ mkdir -p "$(dirname "$HOOK_LOG")" "$REG_DIR" "$(dirname "$REGISTRY_FILE")" 2>/de
 log() {
 	local level="$1"
 	local msg="$2"
-	printf '[opencode-hooks][%s][%s] %s\n' "$(date +%Y-%m-%dT%H:%M:%S%z)" "$level" "$msg" | tee -a "$HOOK_LOG" >/dev/null
+	printf '[mimocode-hooks][%s][%s] %s\n' "$(date +%Y-%m-%dT%H:%M:%S%z)" "$level" "$msg" | tee -a "$HOOK_LOG" >/dev/null
 }
 
 run_or_warn() {
@@ -39,9 +39,9 @@ run_or_warn() {
 
 core_version() {
 	local ver
-	ver="$(opencode --version 2>/dev/null || true)"
-	if [[ -z "$ver" && -x "$PREFIX/lib/opencode/runtime/opencode" ]]; then
-		ver="$($PREFIX/lib/opencode/runtime/opencode --version 2>/dev/null || true)"
+	ver="$(mimocode --version 2>/dev/null || true)"
+	if [[ -z "$ver" && -x "$PREFIX/lib/mimocode/runtime/opencode" ]]; then
+		ver="$($PREFIX/lib/mimocode/runtime/opencode --version 2>/dev/null || true)"
 	fi
 	python3 - "$ver" <<'PY'
 import re,sys
