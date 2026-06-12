@@ -1,8 +1,9 @@
 # MiMoCode-Termux — pure-android branch
 
-**MiMoCode**, packaged for Termux. This repo wraps the upstream OpenCode binary
-(`opencode-linux-arm64` from npm) for Android/Bionic via bun-termux-loader.
-glibc is required at runtime (the wrapper loads it via userland exec).
+**MiMoCode**, packaged for Termux. This repo wraps the upstream MiMoCode binary
+(`mimocode-linux-arm64` from [MiMo-Code](https://github.com/XiaomiMiMo/MiMo-Code) releases)
+for Android/Bionic via bun-termux-loader. glibc is required at runtime (the wrapper
+loads it via userland exec).
 
 ---
 
@@ -42,14 +43,14 @@ pacman -U /path/to/mimocode-<version>-aarch64.pkg.tar.xz
 - ✅ Plugin lifecycle system (install/update/rollback)
 - ✅ TTY/signal cleanup launcher
 - ✅ System-skill hooks (post-install/upgrade/remove)
-- ✅ Batch build (`make batch VERS='1.17.[0-3]'`)
+- ✅ Batch build (`make batch VERS='0.1.0'`)
 - ✅ Release upload automation (`make release-upload`)
 
 ---
 
 ## How it works
 
-The upstream binary (`opencode-linux-arm64` from npm) is a
+The upstream binary (`mimocode-linux-arm64` from upstream MiMo-Code releases) is a
 **glibc-linked Bun-compiled application**. It contains the Bun runtime +
 AI coding code compiled into a single ELF executable.
 
@@ -101,7 +102,7 @@ Releases: https://github.com/Hope2333/MiMoCode-Termux/releases
 ## Usage
 
 ```bash
-mimocode --version          # → 1.17.x
+mimocode --version          # → 0.1.0
 mimocode run "hi"           # AI chat
 mimocode run --mode=dev .   # development mode
 mimocode serve              # API server mode
@@ -116,23 +117,23 @@ mimocode web                # web interface
 
 ```bash
 # Single version
-make all VER=1.17.3 PKG=both
+make all VER=0.1.0 PKG=both
 
 # Batch build
-make batch VERS='1.17.[0-3]' PKG=both ODIR=~/mc-out MIX=1
+make batch VERS='0.1.0' PKG=both ODIR=~/mc-out MIX=1
 ```
 
 ### Build + release upload
 
 ```bash
-make release-upload TAG=Push260611 VERS='1.17.[0-3]'
+make release-upload TAG=Push260611 VERS='0.1.0'
 # Defaults: TAG=Push<YYMMDD>, REPO=Hope2333/MiMoCode-Termux, PKG=both
 ```
 
 ### Build flow
 
 ```
-make all VER=1.17.3 PKG=both
+make all VER=0.1.0 PKG=both
   → clean (rm -rf artifacts/staged, packaging work dirs)
   → runtime (tools/produce-local.sh: npm download + bun-termux-loader wrap)
   → stage (scripts/build.sh: copy to prefix tree)
@@ -146,7 +147,7 @@ make all VER=1.17.3 PKG=both
 
 ```
 .github/workflows/
-  build-pure-android.yml      CI automated build pipeline
+  build-pure-android.yml      CI automated build pipeline (WIP)
 tools/
   produce-local.sh            Download from npm + wrap
   prebuilt/                   Pre-built aarch64 wrapper+shim for CI
@@ -157,7 +158,7 @@ scripts/
   package/package_pacman.sh   Pacman builder
   hooks/run-system-skills.sh  Post-install/upgrade hooks
 patches/
-  0001-android-support.patch   Upstream Android patches (WIP)
+  0001-android-support.patch   Upstream patches (WIP)
 docs/
   native-android-research.md  Research: zero-glibc approaches
 ```
