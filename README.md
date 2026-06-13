@@ -102,11 +102,11 @@ Releases: https://github.com/Hope2333/MiMoCode-Termux/releases
 ## Usage
 
 ```bash
-mimocode --version          # → 0.1.0
-mimocode run "hi"           # AI chat
-mimocode run --mode=dev .   # development mode
-mimocode serve              # API server mode
-mimocode web                # web interface
+mimo --version          # → 0.1.0
+mimo run "hi"           # AI chat
+mimo run --mode=dev .   # development mode
+mimo serve              # API server mode
+mimo web                # web interface
 ```
 
 ---
