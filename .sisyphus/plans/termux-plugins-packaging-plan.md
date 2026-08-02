@@ -11,11 +11,11 @@
 - No risky build/package runs on local Termux.
 - Use debug host **192.168.10.118** for build/package verification.
 - Keep hook behavior safe-by-default (network off, strict off).
-- Avoid editing generated outputs (`artifacts/`, `packaging/*/work`, `packaging/*/pkg`, built `.deb`/`.pkg.tar.*`).
+- Avoid editing generated outputs (`artifacts/`, `packing/*/work`, `packing/*/pkg`, built `.deb`/`.pkg.tar.*`).
 
 ## Dependencies / References
 - opencode-termux hook runner: `/data/data/com.termux/files/home/develop/opencode-termux/scripts/hooks/run-system-skills.sh`
-- opencode-termux packaging: `/data/data/com.termux/files/home/develop/opencode-termux/scripts/package/package_deb.sh`, `/data/data/com.termux/files/home/develop/opencode-termux/scripts/package/package_pacman.sh`, `/data/data/com.termux/files/home/develop/opencode-termux/packaging/pacman/PKGBUILD`
+- opencode-termux packaging: `/data/data/com.termux/files/home/develop/opencode-termux/scripts/package/package_deb.sh`, `/data/data/com.termux/files/home/develop/opencode-termux/scripts/package/package_pacman.sh`, `/data/data/com.termux/files/home/develop/opencode-termux/packing/pacman/PKGBUILD`
 - opencode-plugins-termux current builder: `/data/data/com.termux/files/home/develop/opencode-plugins-termux/tools/plugin-builder.sh` (to be replaced by per-plugin packaging)
 
 ## Plan Steps (Ordered)
@@ -27,8 +27,8 @@
    - For each existing plugin under `/data/data/com.termux/files/home/develop/opencode-plugins-termux/plugins/*`:
      - Add `Makefile` with targets: `fetch`, `stage`, `deb`, `pacman`, `all`, `clean`.
      - Add `scripts/` (fetch/stage/build helpers as needed).
-     - Add `packaging/deb/DEBIAN/control` template and packaging script for dpkg-deb.
-     - Add `packaging/pacman/PKGBUILD` and makepkg wrapper (align with opencode-termux patterns).
+     - Add `packing/deb/DEBIAN/control` template and packaging script for dpkg-deb.
+     - Add `packing/pacman/PKGBUILD` and makepkg wrapper (align with opencode-termux patterns).
    - Ensure staged tree mirrors `dist/index.js` to root `index.js` (avoid `dist` plugin name).
 
 3. **Add `plugins/example` template**
@@ -42,7 +42,7 @@
 
 5. **Lifecycle hooks for remove events**
    - Add deb `prerm`/`postrm` generation in `/data/data/com.termux/files/home/develop/opencode-termux/scripts/package/package_deb.sh`.
-   - Add pacman `pre_remove`/`post_remove` in `/data/data/com.termux/files/home/develop/opencode-termux/packaging/pacman/PKGBUILD` (or `.install` if adopted).
+   - Add pacman `pre_remove`/`post_remove` in `/data/data/com.termux/files/home/develop/opencode-termux/packing/pacman/PKGBUILD` (or `.install` if adopted).
    - Ensure hook runner is invoked with `OPENCODE_HOOK_STRICT=0` and `OPENCODE_HOOK_ENABLE_NETWORK=0`.
    - Update hook docs (`/data/data/com.termux/files/home/develop/opencode-termux/docs/system-skills-hook-architecture.md`) to mention new events.
 

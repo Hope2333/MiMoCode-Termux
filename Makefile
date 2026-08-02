@@ -118,21 +118,21 @@ stage:
 	./scripts/build.sh
 
 deb:
-	rm -rf packaging/dpkg/work
+	rm -rf packing/dpkg/work
 	MAINTAINER='$(PACKAGER_NAME)' ./scripts/package/package_deb.sh
 	@if [ "$(MIX)" = "1" ]; then \
-		mkdir -p "$(OUTPUT_ROOT)" && cp -f packaging/dpkg/mimocode_*.deb "$(OUTPUT_ROOT)/" 2>/dev/null || true; \
+		mkdir -p "$(OUTPUT_ROOT)" && cp -f packing/dpkg/mimocode_*.deb "$(OUTPUT_ROOT)/" 2>/dev/null || true; \
 	else \
-		mkdir -p "$(OUTPUT_ROOT)/deb" && cp -f packaging/dpkg/mimocode_*.deb "$(OUTPUT_ROOT)/deb/" 2>/dev/null || true; \
+		mkdir -p "$(OUTPUT_ROOT)/deb" && cp -f packing/dpkg/mimocode_*.deb "$(OUTPUT_ROOT)/deb/" 2>/dev/null || true; \
 	fi
 
 pacman:
-	rm -rf packaging/pacman/pkg packaging/pacman/src
+	rm -rf packing/pacman/pkg packing/pacman/src
 	PACKAGER_NAME='$(PACKAGER_NAME)' ./scripts/package/package_pacman.sh
 	@if [ "$(MIX)" = "1" ]; then \
-		mkdir -p "$(OUTPUT_ROOT)" && cp -f packaging/pacman/mimocode-*.pkg.* "$(OUTPUT_ROOT)/" 2>/dev/null || true; \
+		mkdir -p "$(OUTPUT_ROOT)" && cp -f packing/pacman/mimocode-*.pkg.* "$(OUTPUT_ROOT)/" 2>/dev/null || true; \
 	else \
-		mkdir -p "$(OUTPUT_ROOT)/pacman" && cp -f packaging/pacman/mimocode-*.pkg.* "$(OUTPUT_ROOT)/pacman/" 2>/dev/null || true; \
+		mkdir -p "$(OUTPUT_ROOT)/pacman" && cp -f packing/pacman/mimocode-*.pkg.* "$(OUTPUT_ROOT)/pacman/" 2>/dev/null || true; \
 	fi
 
 status:
@@ -150,7 +150,7 @@ matrix:
 	@VERS='$(VERS)' ODIR='$(ODIR)' TARGET_HOST='$(TARGET_HOST)' TARGET_PORT='$(TARGET_PORT)' TARGET_USER='$(TARGET_USER)' ./tools/upgrade-matrix.sh
 
 clean:
-	rm -rf artifacts/staged packaging/dpkg/work packaging/pacman/pkg packaging/pacman/src
+	rm -rf artifacts/staged packing/dpkg/work packing/pacman/pkg packing/pacman/src
 	@echo "Clean complete"
 
 # ── Release upload (not shown in help) ──────────────────────────────────

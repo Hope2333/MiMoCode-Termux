@@ -21,8 +21,8 @@ if [[ -z "${VERSION:-}" && -x "$STAGED_PREFIX/lib/mimocode/runtime/mimocode" ]];
 	VERSION="$($STAGED_PREFIX/lib/mimocode/runtime/mimocode --version 2>/dev/null || true)"
 fi
 : "${VERSION:=0.0.0}"
-DEB_ROOT="$ROOT_DIR/packaging/dpkg/work"
-OUT_DIR="$ROOT_DIR/packaging/dpkg"
+DEB_ROOT="$ROOT_DIR/packing/dpkg/work"
+OUT_DIR="$ROOT_DIR/packing/dpkg"
 OUT_FILE="$OUT_DIR/mimocode_${VERSION}_${ARCH_DEB}.deb"
 
 rm -rf "$DEB_ROOT"

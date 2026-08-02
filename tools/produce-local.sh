@@ -33,10 +33,15 @@ CACHE_BIN="$CACHE_DIR/mimocode-$VER"
 if [[ -f "$CACHE_BIN" ]]; then
 	log "cache hit"
 	install -m 755 "$CACHE_BIN" "$MIMOCODE_OUT"
-	"$MIMOCODE_OUT" --version 2>/dev/null || true
-	rm -rf "$ROOT_DIR/artifacts/staged" "$ROOT_DIR/packaging/dpkg/work" "$ROOT_DIR/packaging/pacman/src"
-	log "DONE"
-	exit 0
+	if ! runtime_version="$("$MIMOCODE_OUT" --version 2>/dev/null)"; then
+		log "warning: cached runtime fails version check; discarding and rebuilding"
+		rm -f "$CACHE_BIN" "$MIMOCODE_OUT"
+	else
+		log "version: $runtime_version"
+		rm -rf "$ROOT_DIR/artifacts/staged" "$ROOT_DIR/packing/dpkg/work" "$ROOT_DIR/packing/pacman/src"
+		log "DONE"
+		exit 0
+	fi
 fi
 
 # Download from GitHub releases (wget with resume, fallback curl)
@@ -77,7 +82,11 @@ WRAPPED="${RAW}-termux"
 install -m 755 "$WRAPPED" "$MIMOCODE_OUT"
 install -m 755 "$WRAPPED" "$CACHE_BIN"
 log "done: $(file "$MIMOCODE_OUT" | cut -d: -f2)"
-log "version: $("$MIMOCODE_OUT" --version 2>/dev/null || echo '?')"
+if ! runtime_version="$("$MIMOCODE_OUT" --version 2>&1)"; then
+	die "wrapped runtime failed version check: $runtime_version"
+fi
+[[ -n "$runtime_version" ]] || die "wrapped runtime returned an empty version"
+log "version: $runtime_version"
 
-rm -rf "$ROOT_DIR/artifacts/staged" "$ROOT_DIR/packaging/dpkg/work" "$ROOT_DIR/packaging/pacman/src"
+rm -rf "$ROOT_DIR/artifacts/staged" "$ROOT_DIR/packing/dpkg/work" "$ROOT_DIR/packing/pacman/src"
 log "DONE"
