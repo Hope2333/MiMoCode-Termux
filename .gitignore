@@ -27,3 +27,4 @@ package/bin/opencode
 # Project metadata
 .ai/
 .sisyphus/
+__pycache__/
