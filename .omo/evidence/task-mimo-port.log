@@ -1,0 +1,142 @@
+# task-mimo-port.log — port transplant revive pipeline opencode-termux -> MiMoCode-Termux
+# date: 2026-08-27 | source: opencode-termux@native-android/6bbbe1e | target: MiMoCode-Termux@pure-android/4657664
+[setup] copied tools/transplant/{transplant,revive_patch,swap_tui,probe_extract,detect_layout,convert_layout,probe_assemble}.py + config/bun-bind.json from source repo; rc=0
+[adapt] transplant.py: --member knob (default /bin/opencode preserved) on extract+all; --product knob (stem opencode default / mimocode for mimo); product naming threaded through detect/assemble/verify/revive/all; rc=0 py_compile OK
+[adapt] probe_assemble.py: download_bun resolves URL from config/bun-bind.json (target=1.4.0), legacy BUN_URL fallback kept; resolved url=https://github.com/oven-sh/bun/releases/download/bun-v1.4.0/bun-linux-aarch64-android.zip
+[adapt] config/patches.json: added mimo empty range {min:0.1.0,max:0.99.99,bun_layout:52,patches:[]}; opencode undici range kept for lineage
+[adapt] Makefile: mimo-transplant target (.PHONY + help line); make -n dry-run verified
+[docs] docs/transplant.md condensed port written
+[bun-base] seeded artifacts/transplant/android-bun/bun from source repo cache bun-1.4.0/bun (read-only copy); ./bun --version -> 1.4.0 rc=0
+[tgz] fresh v0.1.13 downloaded to $TMPDIR/mimo-probe/mimocode-linux-arm64.tar.gz size=46156622 sha256=7000a32f12aaa0936f6b0536fad5cd4fe465820eee99c7f86fb4b6278ef735a2 (repo-local copy confirmed corrupt/truncated, not used)
+transplant: ERROR: no member matching '/bin/opencode' in /data/data/com.termux/files/usr/tmp/mimo-probe/mimocode-linux-arm64.tar.gz
+== extract ==
+[pipeline] transplant.py all exit_code=1
+[fix] cmd_all extract_step member arg; py_compile rc=0
+transplant: ERROR: revive surgery succeeded but rela-table line missing from output; stdout:
+auto size-mode=plain-offset (base bun v1.4.0)
+[1/6] base=/data/data/com.termux/files/home/develop/MiMoCode-Termux/artifacts/transplant/android-bun/bun (87914400 B)  payload=/data/data/com.termux/files/home/develop/MiMoCode-Termux/artifacts/transplant/0.1.13/module-graph.bin (39279945 B)
+[2/6] payload trailer OK: last 16B == b'\n---- Bun! ----\n'
+[3/6] .bun section: addr==offset=0x5390000 size=0x4000
+[4/6] covering PT_LOAD #3: off==vaddr=0x32ef880 filesz=0x20d8880 memsz=0x225fd88 | bss_end=0x554f608 -> new_off=0x5550000
+      size field: plain-offset 0x5550000 @ 0x5390000 (bun>=1.4.x runtime adds dlpi_addr itself)
+[5/6] PT_LOAD extended: filesz 0x20d8880->0x47d64d9 memsz 0x225fd88->0x47d64d9
+      blob: [0x5550000, 0x7ac5d59)  (u64 len=39279945 @ 0x5550000; size-field target)
+[6/6] wrote /data/data/com.termux/files/home/develop/MiMoCode-Termux/artifacts/transplant/0.1.13/mimocode-native-revived (128736601 B); plain-offset 0x5550000; runtime computes load_bias + 0x5550000
+
+== extract ==
+  module-graph.bin sha256=44b24f1518c521b7...
+== detect ==
+  layout=52B bun_version=None modules=233
+== convert ==
+  layout already 52B; convert skipped
+== patch ==
+  hit_count=0
+  warning: no patch ranges match version 0.1.13; patch step no-op
+== assemble ==
+  skipped (section format)
+== revive ==
+bun already present, skipping download: /data/data/com.termux/files/home/develop/MiMoCode-Termux/artifacts/transplant/android-bun/bun
+[pipeline] transplant.py all exit_code=1
+=== RUN 3 (post-fix: revive_step dual-marker + patch matched-flag) 2026-08-27T05:16:24Z ===
+== extract ==
+  module-graph.bin sha256=44b24f1518c521b7...
+== detect ==
+  layout=52B bun_version=None modules=233
+== convert ==
+  layout already 52B; convert skipped
+== patch ==
+  hit_count=0
+  warning: version 0.1.13 matched patch range(s) with empty patch lists; patch step no-op
+== assemble ==
+  skipped (section format)
+== revive ==
+bun already present, skipping download: /data/data/com.termux/files/home/develop/MiMoCode-Termux/artifacts/transplant/android-bun/bun
+  mimocode-native-revived sha256=9a8f20cfdc2389cd... (patched_size=128736601, reloc_count=None)
+== verify ==
+  execve_result='0.1.13'
+
+report: /data/data/com.termux/files/home/develop/MiMoCode-Termux/artifacts/transplant/0.1.13/report.json
+{
+  "ver": "0.1.13",
+  "layout": 52,
+  "steps": {
+    "extract": {
+      "ver": "0.1.13",
+      "file_size": 132950160,
+      "module_graph_size": 39279945,
+      "format": "section",
+      "section_offset": 93585408,
+      "section_size": 39279953,
+      "sha256": "44b24f1518c521b778c68af9b0f87e8cec911106d2d8b90f7ca3cb9d3595f594"
+    },
+    "detect": {
+      "byte_count": 39279897,
+      "mod_off": 39267733,
+      "mod_len": 12116,
+      "entry_point_id": 33,
+      "argv": [
+        39279849,
+        47
+      ],
+      "flags": 3,
+      "layout": 52,
+      "n": 233,
+      "bun_version": null,
+      "module_count": 233,
+      "source_format": "section",
+      "source": "module-graph.bin (.bun section payload)"
+    },
+    "convert": {
+      "skipped": true,
+      "reason": "layout already 52B"
+    },
+    "patch": {
+      "hit_count": 0,
+      "warnings": [
+        "version 0.1.13 matched patch range(s) with empty patch lists; patch step no-op"
+      ],
+      "config": "/data/data/com.termux/files/home/develop/MiMoCode-Termux/tools/transplant/config/patches.json"
+    },
+    "assemble": {
+      "skipped": true,
+      "reason": "section format: revive grafts graph directly onto android bun"
+    },
+    "revive": {
+      "status": "ok",
+      "bun": "/data/data/com.termux/files/home/develop/MiMoCode-Termux/artifacts/transplant/android-bun/bun",
+      "graph": "/data/data/com.termux/files/home/develop/MiMoCode-Termux/artifacts/transplant/0.1.13/module-graph.bin",
+      "out": "/data/data/com.termux/files/home/develop/MiMoCode-Termux/artifacts/transplant/0.1.13/mimocode-native-revived",
+      "patched_size": 128736601,
+      "reloc_count": null,
+      "size_mode": "plain-offset",
+      "size_field_vaddr": 89456640,
+      "sha256": "9a8f20cfdc2389cd530ee252c543c2ad1b0d69d28d677622ac788fb9f79519b5"
+    },
+    "verify": {
+      "execve_result": "0.1.13",
+      "exit_code": 0,
+      "stdout": "0.1.13",
+      "stderr": "",
+      "expect_version": "0.1.13",
+      "assert_ok": true
+    }
+  }
+}
+RUN3_EXIT=0
+=== SMOKE 2026-08-27T05:16:44Z ===
+0.1.13
+SMOKE_EXIT=0
+=== FINAL SUMMARY 2026-08-27T05:17:04Z ===
+pipeline steps+exit codes (RUN 3, full green):
+  extract  ok   (section fmt, module-graph.bin sha256=44b24f15..., size=39279945)
+  detect   ok   layout=52B n=233 modules bun_version=null
+  convert  skip (already 52B)            exit=0
+  patch    ok   hit_count=0 no-op (mimo empty range matched)  exit=0
+  assemble skip (section format)         exit=0
+  revive   ok   size_mode=plain-offset vaddr=0x5550000 patched_size=128736601 sha256=9a8f20cf...  exit=0
+  verify   ok   execve_result='0.1.13' assert_ok=true  exit=0
+  cmd_all RUN3_EXIT=0
+SMOKE: ./artifacts/transplant/0.1.13/mimocode-native-revived --version -> stdout '0.1.13' SMOKE_EXIT=0
+port fixes beyond copy: extract --member/--product knobs; probe_assemble bun-bind.json URL wiring (1.4.0);
+  revive_step dual success-marker (reloc rela-table OR plain-offset); _select_patches matched-empty-range warning;
+  patches.json mimo empty range {0.1.0-0.99.99, layout 52}; Makefile mimo-transplant target; docs/transplant.md condensed port.

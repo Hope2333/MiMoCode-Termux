@@ -17,7 +17,7 @@ REPO ?= Hope2333/MiMoCode-Termux
 
 OUTPUT_ROOT := $(if $(ODIR),$(ODIR),$(CURDIR)/packing)
 
-.PHONY: help all runtime stage deb pacman batch clean status steps matrix selfcheck release-upload
+.PHONY: help all runtime stage deb pacman batch clean status steps matrix selfcheck release-upload mimo-transplant
 
 help:
 	@echo "MiMoCode Termux build helper"
@@ -63,6 +63,7 @@ help:
 	@echo "  make status"
 	@echo "  make selfcheck"
 	@echo "  make matrix VERS='1.2.9 1.2.10' ODIR=~/oct-out"
+	@echo "  make mimo-transplant VER=0.1.13 TGZ=/path/to/mimocode-linux-arm64.tar.gz"
 	@echo
   @echo "Wrapper CLI (tools/make-mimocode):"
 	@echo "  ./tools/make-mimocode --all --ver 1.17.3 --pkg both"
@@ -148,6 +149,21 @@ selfcheck:
 
 matrix:
 	@VERS='$(VERS)' ODIR='$(ODIR)' TARGET_HOST='$(TARGET_HOST)' TARGET_PORT='$(TARGET_PORT)' TARGET_USER='$(TARGET_USER)' ./tools/upgrade-matrix.sh
+
+# Native transplant pipeline (ported from opencode-termux; see docs/transplant.md).
+# Runs the full revive flow against a MiMoCode glibc tarball and produces
+# artifacts/transplant/<VER>/mimocode-native-revived (runnable on-device ELF).
+# Usage: make mimo-transplant VER=0.1.13 TGZ=/path/to/mimocode-linux-arm64.tar.gz
+mimo-transplant:
+	@if [ -z "$(VER)" ] || [ "$(VER)" = "latest" ]; then \
+		echo "Error: VER is required. Example: make mimo-transplant VER=0.1.13 TGZ=/path/to/mimocode-linux-arm64.tar.gz"; \
+		exit 1; \
+	fi
+	@if [ -z "$(TGZ)" ]; then \
+		echo "Error: TGZ is required (path to mimocode-linux-arm64-<ver>.tar.gz)"; \
+		exit 1; \
+	fi
+	python3 tools/transplant/transplant.py all --ver $(VER) --tgz $(TGZ) --member mimo --product mimocode
 
 clean:
 	rm -rf artifacts/staged packing/dpkg/work packing/pacman/pkg packing/pacman/src
