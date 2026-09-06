@@ -97,6 +97,31 @@ pacman -U /path/to/mimocode-<version>-aarch64.pkg.tar.xz
 
 Releases: https://github.com/Hope2333/MiMoCode-Termux/releases
 
+## Install from the hope2333 software source (Termux)
+
+Configure the source (one line):
+
+```sh
+curl -fsSL https://hope2333.github.io/repo/install.sh | sh
+```
+
+Configure + install in one line:
+
+```sh
+curl -fsSL https://hope2333.github.io/repo/install.sh | sh -s -- --install mimocode
+```
+
+The glibc-compat variant is available as `mimocode-glibc`.
+
+Upgrade later:
+
+```sh
+pacman -Syu                    # pacman client
+apt update && apt upgrade     # apt client (mirrorlist package updates via the [hope2333-meta] source)
+```
+
+Details: https://hope2333.github.io/wiki/guides/install.html
+
 ---
 
 ## Usage
