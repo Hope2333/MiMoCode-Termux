@@ -164,6 +164,24 @@ mimo-transplant:
 		exit 1; \
 	fi
 	python3 tools/transplant/transplant.py all --ver $(VER) --tgz $(TGZ) --member mimo --product mimocode
+	@# TUI swap (mirrors opencode-termux Makefile W7c2): swap the bionic
+	@# libopentui.so into the revived binary so OpenTUI renders on
+	@# Android/bionic. WARN-skip when the local bionic build is absent.
+	@# KNOWN BLOCKER (260829): MiMo 0.1.13 embedded slot=4567704 B <
+	@# stripped lib=5881368 B (--strip-all=5236456 B) -> swap_tui.py exits 4
+	@# until a fitting bionic libopentui is built for MiMo.
+	@if [ -f tools/transplant/libopentui.so ]; then \
+		echo "==> swapping bionic libopentui (tools/transplant/swap_tui.py)"; \
+		strip_bin=$$(command -v llvm-strip || command -v strip); \
+		cp tools/transplant/libopentui.so $${TMPDIR:-/tmp}/libopentui-strip.so; \
+		$$strip_bin --strip-debug $${TMPDIR:-/tmp}/libopentui-strip.so; \
+		python3 tools/transplant/swap_tui.py \
+			--binary artifacts/transplant/$(VER)/mimocode-native-revived \
+			--tui-lib $${TMPDIR:-/tmp}/libopentui-strip.so \
+			--out artifacts/transplant/$(VER)/mimocode-native-revived-tui; \
+	else \
+		echo "WARN: tools/transplant/libopentui.so not found; skipping TUI swap"; \
+	fi
 
 clean:
 	rm -rf artifacts/staged packing/dpkg/work packing/pacman/pkg packing/pacman/src

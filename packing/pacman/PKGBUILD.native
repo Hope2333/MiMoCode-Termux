@@ -1,0 +1,45 @@
+# PKGBUILD for MiMoCode native (bionic) on Termux
+pkgname=mimocode
+pkgver=0.0.0
+pkgrel=1
+pkgdesc='MiMoCode native bionic runtime for Termux (zero glibc)'
+arch=('aarch64')
+url='https://github.com/Hope2333/MiMoCode-Termux'
+license=('MIT')
+options=('!strip' '!debug')
+
+depends=()
+conflicts=('mimocode-wrapper')
+makedepends=()
+
+source=()
+sha256sums=()
+
+_prefix="${PREFIX:-/data/data/com.termux/files/usr}"
+_repo_root="${REPO_ROOT:-$(cd "$(dirname "$0")/../.." && pwd)}"
+_native_bin="${MIMO_NATIVE_BIN:?MIMO_NATIVE_BIN must point to the revived native binary}"
+
+prepare() {
+  [[ -x "$_native_bin" ]] || {
+    error "native binary not executable: $_native_bin"
+    return 1
+  }
+}
+
+build() {
+  true
+}
+
+package() {
+  mkdir -p "$pkgdir${_prefix}/bin"
+  install -m755 "$_native_bin" "$pkgdir${_prefix}/bin/mimo"
+}
+
+post_install() {
+  echo "MiMoCode (native) for Termux installed"
+  echo "Run: mimo --version"
+}
+
+post_upgrade() {
+  echo "MiMoCode (native) upgraded"
+}

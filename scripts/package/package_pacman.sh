@@ -27,8 +27,8 @@ fi
 cd "$ROOT_DIR/packing/pacman"
 rm -rf "$ROOT_DIR/packing/pacman/pkg" "$ROOT_DIR/packing/pacman/src"
 
-TMP_MAKEPKG_CONF="$ROOT_DIR/packing/pacman/.makepkg-opencode.conf"
-TMP_PKGBUILD="$ROOT_DIR/packing/pacman/.PKGBUILD.opencode.tmp"
+TMP_MAKEPKG_CONF="$ROOT_DIR/packing/pacman/.makepkg-mimocode.conf"
+TMP_PKGBUILD="$ROOT_DIR/packing/pacman/.PKGBUILD.mimocode.tmp"
 cleanup() {
 	rm -f "$TMP_MAKEPKG_CONF" "$TMP_PKGBUILD"
 }

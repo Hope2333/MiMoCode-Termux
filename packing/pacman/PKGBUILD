@@ -1,4 +1,4 @@
-pkgname=mimocode
+pkgname=mimocode-wrapper
 pkgver=1.2.10
 pkgrel=1
 pkgdesc='MiMoCode for Termux from local staged prefix'
@@ -6,6 +6,9 @@ arch=('aarch64')
 url='https://github.com/Hope2333/MiMoCode-Termux'
 license=('MIT')
 options=('!strip' '!debug')
+
+replaces=('mimocode')
+conflicts=('mimocode')
 
 makedepends=()
 source=()

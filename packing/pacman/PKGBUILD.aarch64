@@ -1,5 +1,5 @@
 # PKGBUILD for OpenCode on Termux
-pkgname=opencode
+pkgname=mimocode-wrapper
 pkgver=1.1.65
 pkgrel=8
 pkgdesc='Open source coding agent for Termux with TTY+lock cleanup'
@@ -9,6 +9,8 @@ license=('MIT')
 options=('!strip' '!debug')
 
 depends=('bash' 'ncurses' 'bun')
+replaces=('mimocode')
+conflicts=('mimocode')
 makedepends=()
 optdepends=(
     'ripgrep: faster search'

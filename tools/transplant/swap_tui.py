@@ -17,7 +17,11 @@ import argparse
 import struct
 import sys
 
-ASSET_MARKER = b"\x00/$bunfs/root/libopentui-x8k2b6xk.so\x00\x7fELF"
+# Asset name suffix is content-hash derived by bun's standalone builder and
+# differs per npm package (opencode: x8k2b6xk, MiMo: tjcwz1e6); match the
+# libopentui- prefix and locate the raw ELF start after the name terminator.
+ASSET_PREFIX = b"\x00/$bunfs/root/libopentui-"
+ASSET_ELF_TAIL = b"\x00\x7fELF"
 
 
 def elf_size(data: bytes, off: int) -> int:
@@ -50,11 +54,15 @@ def main() -> int:
     data = open(args.binary, "rb").read()
     lib = open(args.tui_lib, "rb").read()
 
-    idx = data.find(ASSET_MARKER)
+    idx = data.find(ASSET_PREFIX)
     if idx < 0:
         print("swap_tui: asset marker not found", file=sys.stderr)
         return 2
-    base = idx + len(ASSET_MARKER) - 4  # position of \x7fELF
+    name_end = data.find(ASSET_ELF_TAIL, idx)
+    if name_end < 0:
+        print("swap_tui: asset name terminator not found", file=sys.stderr)
+        return 2
+    base = name_end + 1  # position of \x7fELF
 
     # Raw-ELF sanity: reject compressed payloads.
     head = data[base : base + 16]

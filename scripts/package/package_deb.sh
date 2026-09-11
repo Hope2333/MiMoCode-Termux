@@ -23,7 +23,7 @@ fi
 : "${VERSION:=0.0.0}"
 DEB_ROOT="$ROOT_DIR/packing/dpkg/work"
 OUT_DIR="$ROOT_DIR/packing/dpkg"
-OUT_FILE="$OUT_DIR/mimocode_${VERSION}_${ARCH_DEB}.deb"
+OUT_FILE="$OUT_DIR/mimocode-wrapper_${VERSION}_${ARCH_DEB}.deb"
 
 rm -rf "$DEB_ROOT"
 mkdir -p "$DEB_ROOT/DEBIAN" "$DEB_ROOT$PREFIX" "$OUT_DIR"
@@ -31,7 +31,7 @@ chmod 755 "$DEB_ROOT" "$DEB_ROOT/DEBIAN"
 cp -a "$STAGED_PREFIX/." "$DEB_ROOT$PREFIX/"
 
 cat >"$DEB_ROOT/DEBIAN/control" <<EOF
-Package: mimocode
+Package: mimocode-wrapper
 Version: $VERSION
 Architecture: $ARCH_DEB
 Maintainer: $MAINTAINER
@@ -39,6 +39,9 @@ Section: utils
 Priority: optional
 Description: MiMoCode AI coding assistant for Termux
 Depends: bash, ncurses
+Replaces: mimocode
+Breaks: mimocode (<< $VERSION)
+Conflicts: mimocode
 EOF
 
 INSTALLED_SIZE=$(du -sk "$DEB_ROOT" | cut -f1)
