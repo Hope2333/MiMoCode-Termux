@@ -7,7 +7,7 @@ url='https://github.com/Hope2333/MiMoCode-Termux'
 license=('MIT')
 options=('!strip' '!debug')
 
-replaces=('mimocode')
+replaces=('mimocode' 'mimocode-glibc')
 conflicts=('mimocode')
 
 makedepends=()
