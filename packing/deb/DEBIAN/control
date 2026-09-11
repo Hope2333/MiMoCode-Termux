@@ -5,6 +5,6 @@ Maintainer: Hope2333(幽零小喵) <u0catmiao@proton.me>
 Section: utils
 Priority: optional
 Description: MiMoCode AI coding assistant for Termux (glibc wrapper line)
-Replaces: mimocode, mimocode-glibc
-Breaks: mimocode, mimocode-glibc (<< ${MIMO_VERSION})
+Replaces: mimocode-glibc
+Breaks: mimocode-glibc (<< ${MIMO_VERSION})
 Conflicts: mimocode
