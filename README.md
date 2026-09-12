@@ -111,7 +111,7 @@ Configure + install in one line:
 curl -fsSL https://hope2333.github.io/repo/install.sh | sh -s -- --install mimocode
 ```
 
-The glibc-compat variant is available as `mimocode-glibc`.
+The glibc-compat variant is available as `mimocode-wrapper`.
 
 Upgrade later:
 
